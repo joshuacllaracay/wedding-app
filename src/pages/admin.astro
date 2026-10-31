@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { requireAdmin } from '../lib/server';
+export const prerender = false;
+try { await requireAdmin(Astro); } catch { return Astro.redirect('/login'); }
+---
+<Layout title="Guest list · Chyka & Emmanuel" privatePage>
+  <main class="admin-shell">
+    <header class="admin-header"><div><span class="eyebrow">CHYKA & EMMANUEL / YOUR CELEBRATION</span><h1>A seat for everyone you love.</h1></div><div class="admin-actions"><a class="text-link" href="/" target="_blank" rel="noopener">View invitation ↗</a><button class="text-link" id="logout">Sign out</button></div></header>
+    <p class="admin-lead">One invitation, up to two people. Responses update the existing invitation so your headcount stays accurate.</p>
+    <div id="dashboard-status" role="status" aria-live="polite" class="admin-status"></div>
+    <div class="stats"><div class="stat"><span>Confirmed people</span><strong id="total-guests">—</strong></div><div class="stat"><span>Accepting invitations</span><strong id="total-accepting">—</strong></div><div class="stat"><span>Declined invitations</span><strong id="total-declined">—</strong></div><div class="stat"><span>Awaiting a response</span><strong id="total-waiting">—</strong></div></div>
+    <div class="notification-bar" id="notification-bar" hidden><p><span id="pending-emails">0</span> email notifications need sending. All responses are saved.</p><button class="text-link" id="retry-emails">Retry up to 10 emails ↗</button></div>
+    <section class="admin-card" aria-labelledby="new-invitation-title"><h2 id="new-invitation-title">Make room for someone special.</h2><p>Create a private link for a person or a pair. Share it directly or download its QR code from the guest list.</p><form id="create-invitation" class="invite-create"><div><label for="household">Invitation name</label><input id="household" name="household" maxlength="120" required placeholder="e.g. Alex & Sam" /></div><div><label for="max-guests">Guest allowance</label><select id="max-guests" name="maxGuests"><option value="2">2 people</option><option value="1">1 person</option></select></div><button class="button" type="submit">Create invitation +</button></form><div id="created-invitation" hidden><label for="created-link">Your private invitation link</label><input id="created-link" readonly /><p class="admin-lead">Treat this link as private: anyone with it can view and update this invitation’s response.</p></div></section>
+    <div class="admin-toolbar"><h2>Your guest list</h2><label class="sr-only" for="search">Search guests</label><input type="search" id="search" placeholder="Search names or email…" /><div class="admin-actions"><button class="text-link" id="refresh">Refresh</button><button class="text-link" id="export">Export CSV ↓</button></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Invitation</th><th>Response</th><th>People</th><th>Message & contact</th><th>Share</th></tr></thead><tbody id="guest-list"></tbody></table></div><p id="guest-list-empty" class="empty-state" hidden>No invitations yet. Create your first one above.</p>
+  </main>
+  <script src="../scripts/admin.ts"></script>
+</Layout>

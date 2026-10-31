@@ -1,0 +1,19 @@
+---
+import '../styles/global.css';
+interface Props { title: string; description?: string; privatePage?: boolean; }
+const { title, description = 'Together with our families, we invite you to celebrate our wedding.', privatePage = false } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#EDE6DE" />
+    <meta name="referrer" content="no-referrer" />
+    {privatePage && <meta name="robots" content="noindex,nofollow" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+  </head>
+  <body><slot /></body>
+</html>

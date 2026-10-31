@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+export const prerender = false;
+---
+<Layout title="Sign in · Wedding guest list" privatePage>
+  <main class="login-shell"><div class="login-card"><span class="eyebrow">JUST FOR THE TWO OF YOU</span><h1>Your celebration,<br /><em>at a glance.</em></h1><p>Sign in to manage invitations and see who will be joining you.</p><form id="login-form"><label for="email">Email address</label><input id="email" name="email" type="email" required autocomplete="username" /><label for="password">Password</label><input id="password" name="password" type="password" required autocomplete="current-password" /><button class="button" type="submit">Sign in <span aria-hidden="true">→</span></button><p class="admin-status" id="login-status" role="status" aria-live="polite"></p></form><a class="text-link" href="/">Back to the invitation ↗</a></div></main>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('#login-form')!;
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const status = document.querySelector<HTMLElement>('#login-status')!;
+      const button = form.querySelector<HTMLButtonElement>('button')!;
+      const data = new FormData(form);
+      button.disabled = true; status.textContent = 'Signing in…';
+      try {
+        const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: data.get('email'), password: data.get('password') }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        window.location.assign('/admin');
+      } catch (error) { status.textContent = error instanceof Error ? error.message : 'Unable to sign in. Please try again.'; button.disabled = false; }
+    });
+  </script>
+</Layout>
