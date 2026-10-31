@@ -37,8 +37,21 @@ const lookup = $('#invitation-lookup');
 const lookupForm = $<HTMLFormElement>('#lookup-form');
 const form = $<HTMLFormElement>('#rsvp-form');
 const success = $('#rsvp-success');
-const count = $<HTMLSelectElement>('#guest-count');
 const countField = $('#guest-count-field');
+const selectedGuests = () => [...form.querySelectorAll<HTMLInputElement>('input[name="guestIds"]:checked')].map(input=>input.value);
+function renderGuestChoices(guests: {id:string;name:string;attending:boolean|null}[]) {
+  const container = $('#named-guests'); container.replaceChildren();
+  for (const guest of guests) {
+    const label = document.createElement('label'); const input = document.createElement('input');
+    input.type = 'checkbox'; input.name = 'guestIds'; input.value = guest.id; input.checked = guest.attending === true;
+    const name = document.createElement('span'); name.textContent = guest.name;
+    label.append(input,name); container.append(label);
+  }
+}
+function showMemories(open: boolean) {
+  $('#memories-invitation').hidden = !open;
+  $<HTMLAnchorElement>('#share-memories').href = `/memories?invite=${encodeURIComponent(token)}`;
+}
 let token = new URLSearchParams(window.location.search).get('invite') ?? '';
 const api = async (path: string, data: unknown) => {
   const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -50,7 +63,7 @@ const setStatus = (message: string, loading = false) => { status.textContent = m
 function attendanceChanged() {
   const attending = new FormData(form).get('attending') === 'yes';
   countField.hidden = !attending;
-  count.disabled = !attending;
+  form.querySelectorAll<HTMLInputElement>('input[name="guestIds"]').forEach(input => { input.disabled = !attending; });
   $('#message-label').textContent = new FormData(form).get('attending') === 'no' ? 'A message or reason you cannot attend' : 'A little message for the couple';
 }
 form.querySelectorAll('input[name="attending"]').forEach(input => input.addEventListener('change', attendanceChanged));
@@ -63,14 +76,12 @@ async function loadInvitation(code: string) {
     token = code.trim();
     $('#household-name').textContent = data.household;
     $('#guest-allowance').textContent = `(up to ${data.maxGuests})`;
-    count.options[1].hidden = data.maxGuests < 2;
-    count.options[1].disabled = data.maxGuests < 2;
-    count.value = '1';
+    renderGuestChoices(data.guests);
+    showMemories(data.memoriesOpen);
     if (data.response) {
       for (const field of ['name', 'email', 'message'] as const) (form.elements.namedItem(field) as HTMLInputElement).value = data.response[field];
       const radio = form.querySelector<HTMLInputElement>(`input[value="${data.response.attending ? 'yes' : 'no'}"]`)!;
       radio.checked = true;
-      count.value = String(data.response.guests || 1);
       $('#submit-rsvp').firstChild!.textContent = 'Update with love ';
     }
     attendanceChanged();
@@ -85,6 +96,8 @@ document.querySelector('#preview-form')?.addEventListener('click', () => {
   previewOnly = true; lookup.hidden = true; form.hidden = false;
   $('#household-name').textContent = 'Sample invitation';
   $('#guest-allowance').textContent = '(up to 2)';
+  renderGuestChoices([{ id:'00000000-0000-4000-8000-000000000001',name:'Alex',attending:null },{ id:'00000000-0000-4000-8000-000000000002',name:'Sam',attending:null }]);
+  attendanceChanged();
   setStatus('Form preview only. Responses will not be saved or emailed.');
 });
 form.addEventListener('submit', async event => {
@@ -93,11 +106,13 @@ form.addEventListener('submit', async event => {
   const button = $<HTMLButtonElement>('#submit-rsvp');
   const values = new FormData(form);
   const attending = values.get('attending') === 'yes';
+  const guestIds = attending ? selectedGuests() : [];
+  if (attending && !guestIds.length) { setStatus('Please select the names of the guests attending.'); return; }
   button.disabled = true; setStatus('Sending your response…', true);
   try {
-    await api('/api/rsvp', { token, name: values.get('name'), email: values.get('email'), attending, guests: attending ? Number(values.get('guests')) : 0, message: values.get('message'), website: values.get('website') });
+    await api('/api/rsvp', { token, name: values.get('name'), email: values.get('email'), attending, guestIds, message: values.get('message'), website: values.get('website') });
     form.hidden = true; success.hidden = false;
-    $('#success-copy').textContent = attending ? `We have saved your response for ${count.value} ${count.value === '1' ? 'person' : 'people'}. We cannot wait to celebrate with you.` : 'Thank you for letting us know. You will be with us in spirit, and your message means so much.';
+    $('#success-copy').textContent = attending ? `We have saved your response for ${guestIds.length} ${guestIds.length === 1 ? 'person' : 'people'}. We cannot wait to celebrate with you.` : 'Thank you for letting us know. You will be with us in spirit, and your message means so much.';
     $('#submit-rsvp').firstChild!.textContent = 'Update with love ';
     setStatus('');
     success.setAttribute('tabindex', '-1'); success.focus({ preventScroll: true });
@@ -105,3 +120,10 @@ form.addEventListener('submit', async event => {
   finally { button.disabled = false; }
 });
 $('#edit-rsvp').addEventListener('click', () => { form.hidden = false; success.hidden = true; $<HTMLInputElement>('#guest-name').focus(); });
+async function refreshMemoryAvailability() {
+  if (!token || previewOnly || document.hidden) return;
+  try { const data = await api('/api/memories',{action:'status',token}); showMemories(data.open); }
+  catch { showMemories(false); }
+}
+document.addEventListener('visibilitychange', () => { void refreshMemoryAvailability(); });
+window.setInterval(() => { void refreshMemoryAvailability(); },60_000);

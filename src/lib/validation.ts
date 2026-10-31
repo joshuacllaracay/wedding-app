@@ -25,3 +25,12 @@ export function csvCell(value: unknown) {
   if (/^[\s]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = `'${text}`;
   return `"${text.replaceAll('"', '""')}"`;
 }
+export function parseGuestNames(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 2) throw new InputError('Add one or two named guests.');
+  return value.map(name => textField(name, 'each guest’s name', 120));
+}
+export function parseNamedRsvp(value: Record<string, unknown>) {
+  if (!Array.isArray(value.guestIds) || value.guestIds.length > 2 || !value.guestIds.every(isUuid) || new Set(value.guestIds).size !== value.guestIds.length) throw new InputError('Choose the guests who will attend.');
+  const parsed = parseRsvp({ ...value, guests: value.guestIds.length });
+  return { ...parsed, guestIds: value.guestIds as string[] };
+}

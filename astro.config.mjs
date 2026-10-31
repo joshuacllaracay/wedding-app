@@ -3,6 +3,6 @@ import vercel from '@astrojs/vercel';
 
 export default defineConfig({
   output: 'static',
-  adapter: vercel(),
+  adapter: vercel({ maxDuration: 60 }),
   devToolbar: { enabled: false },
 });

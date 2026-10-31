@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { wedding } from '../config/wedding';
+---
+<Layout title={`Share your memories · ${wedding.bride} & ${wedding.groom}`} privatePage>
+  <main class="memories-shell">
+    <a id="back-to-invitation" href="/" class="text-link">← Back to your invitation</a>
+    <header class="memories-heading"><span class="eyebrow">CHYKA & EMMANUEL / THROUGH YOUR EYES</span><h1>Little moments.<br /><em>Forever memories.</em></h1><p>Thank you for being part of our day. Share your favourite photos with us, so we can treasure every moment.</p></header>
+    <div id="memory-status" role="status" aria-live="polite" class="admin-status">Finding your invitation…</div>
+    <div id="memory-closed" class="admin-card" hidden><h2>Something to look forward to.</h2><p>Photo sharing is currently closed. Reopen your invitation during the celebration to see when it is available.</p></div>
+    <section id="upload-panel" class="upload-panel" hidden aria-label="Share photos">
+      <label for="upload-guest">Whose memories are these?</label><select id="upload-guest"></select>
+      <p id="photo-allowance" class="photo-allowance"></p><p class="upload-help">Up to 10 photos per person, across all visits. JPG, PNG, or WebP · 10 MB and 40 megapixels per photo. Please export HEIC images as JPG first.</p>
+      <form id="photo-form"><label class="file-picker" for="photo-files"><span aria-hidden="true">＋</span><strong>Choose your favourite moments</strong><span>Select photos from your phone or camera</span></label><input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp" multiple /><div id="upload-previews" class="upload-previews"></div><button type="submit" id="upload-submit" class="button" disabled>Share photos with the couple <span aria-hidden="true">↗</span></button></form>
+      <p class="form-privacy">Your photos are private to the couple. Everyone on this invitation can select either listed name. Please upload only photos you have permission to share.</p>
+      <div id="pending-uploads" class="pending-uploads" hidden><p id="pending-copy"></p><button type="button" id="finish-pending" class="text-link">Finish pending uploads ↗</button></div>
+      <div class="uploaded-list"><h2>Your shared moments</h2><ul id="uploaded-photos"></ul></div>
+    </section>
+  </main>
+  <script src="../scripts/memories.ts"></script>
+</Layout>

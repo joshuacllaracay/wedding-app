@@ -1,6 +1,6 @@
 # Chyka & Emmanuel — Wedding invitation
 
-A mobile-first Astro + TypeScript invitation with an animated envelope, optional music, private invitation links and QR codes, RSVP updates, and a private guest dashboard. The colors follow the supplied ivory/champagne/taupe palette.
+A mobile-first Astro + TypeScript invitation with an animated envelope, optional music, private invitation links and QR codes, named RSVPs, and a private wedding portal with scheduled photo sharing. The colors follow the supplied ivory/champagne/taupe palette. The invitation, guest photo page, and admin portal use this **same repository and deployment**; no separate CRM repository is needed.
 
 The couple’s names are real; the date, venue, deadline, and dress-code wording are **sample details**. A visible preview banner remains enabled until `sampleDetails` is changed in `src/config/wedding.ts`.
 
@@ -25,9 +25,9 @@ The tests execute the SQL functions using an embedded PostgreSQL engine (PGlite)
 
 ## Connect Supabase
 
-1. Create a Supabase project and run `supabase/schema.sql` **once** in its SQL editor.
+1. For a new project, run `supabase/schema.sql` **once**, then `supabase/migrations/002_guest_portal_memories.sql` **once** in the SQL editor. If you already ran `schema.sql`, run **only the new migration**. It preserves existing invitation tokens, responses, and notifications, adds named guests and photo settings, and creates the private `wedding-memories` storage bucket. Run the migration before starting/deploying this version of the app.
 2. Copy `.env.example` to `.env` and enter the project URL, anon key, and service-role key. All variables in this project are server-only; never prefix these keys with `PUBLIC_`.
-3. In Supabase Authentication, create an email/password user for each person who should manage guests. Add their user UUIDs to the comma-separated `ADMIN_USER_IDS` variable. Disable public sign-ups if you do not need them. The application provides no public registration screen.
+3. In Supabase Authentication → Users, create your own email/password user as the wedding administrator. Your Supabase dashboard login does not automatically create a portal user. Add this user UUID to `ADMIN_USER_IDS`. The bride and groom do not need accounts when you manage the portal for them. Additional admin IDs can be comma-separated if you later want to give them access. Disable public sign-ups if you do not need them. The application provides no public registration screen.
 4. Restart Astro after changing environment variables. Open `/login`, sign in, then use `/admin` to create invitations with a **one- or two-person allowance**.
 
 The service-role key is used only by server endpoints. Row-level security is enabled with no anonymous or authenticated table access. Admin access requires a verified Supabase Auth session **and** an explicitly allowed user ID. Sessions use HttpOnly, SameSite cookies, become Secure on HTTPS, and expire with the Supabase access token (normally about an hour). Sign in again after expiry; persistent refresh-token storage is intentionally omitted.
@@ -42,13 +42,33 @@ An RSVP is saved transactionally with a notification-outbox entry before the ema
 
 ## Guest workflow
 
-1. In `/admin`, enter an invitation name (for example, “Alex & Sam”) and allowance (1 or 2).
+1. In `/admin`, choose one or two people and enter **each guest's name**. An optional invitation label can group the pair (for example, “Alex & Sam”). The names and invitation are created in one transaction before a QR is generated. Use **Edit names** for corrections; it keeps the guest IDs, photo allowances, token, and RSVP. The number of people on an existing invitation is fixed.
 2. Copy the generated private link or download its QR code. Each QR encodes that invitation’s URL: `/?invite=<random-UUID>`.
-3. Share that link/QR with the invited person. The recipient chooses attending/declining, enters their name and email, selects one or two attendees within the allowance, and writes a message or reason.
+3. Share that link/QR with the invited person. The recipient chooses attending/declining, enters their name and email, checks the names of the people attending, and writes a message or reason. A pair can choose either person or both. The server calculates the count from those names and rejects names from other invitations.
 4. The same private link lets them update their existing response. Counts reflect the latest saved response. Identical resubmissions are idempotent; changed responses are limited to one every ten seconds per invitation.
 5. View confirmed **people**, accepting/declining **invitations**, and unanswered invitations in the dashboard. Search by name/email or export the full list as CSV.
 
-Private links are bearer credentials: anyone holding one can read and update that invitation’s response, including its contact email and message. Share them directly. If one leaks, use **Replace link** in the dashboard, then share its new link/QR. The old link stops working and the RSVP is retained. Avoid third-party analytics that capture invitation URLs. Referrer policy prevents links leaking to other sites through the Referer header. Guests’ RSVP data is private; the invitation’s general wedding details are publicly accessible at `/`.
+Private links are bearer credentials: anyone holding one can read and update that invitation’s response, including its contact email and message, and upload as either named person when sharing is open. They do not provide access to the couple's gallery or originals. Share them directly. If one leaks, use **Replace link** in the dashboard, then share its new link/QR. The old invitation link stops working; previously issued Storage upload tickets expire within two hours and cannot finalize photos with a revoked invitation token. The RSVP and completed memories are retained. Avoid third-party analytics that capture invitation URLs. Referrer policy prevents links leaking to other sites through the Referer header. Guests’ RSVP data is private; the invitation’s general wedding details are publicly accessible at `/`.
+
+## Upgrade existing invitations
+
+The migration keeps every original invitation and its allowance. Old single-person invitations use the existing invitation label as the initial guest name; pairs receive `Invitation label · Guest 1` / `Guest 2`. Rename these in the portal before sharing. Old RSVP totals are preserved. If an old pair accepted for just one person, the migration does not guess which person: both individual attendance values stay unknown until they submit a named response. The dashboard still counts the saved total correctly.
+
+## Scheduled memories and downloads
+
+In `/admin`, **Photo sharing** has three modes:
+
+- **Closed** (the default): the invitation's sharing section is hidden and server requests to start or finalize uploads are rejected.
+- **Scheduled**: set opening and closing date/times in **Singapore time (UTC+08)**. Times are stored as UTC instants. Opening is inclusive; closing is exclusive. No redeploy or automation job is required.
+- **Open now**: upload sharing stays open until you switch it off, regardless of saved schedule dates.
+
+Guests reopen their existing invitation/QR. The sharing section appears when they load the invitation during the window; already open pages refresh availability approximately every minute and on returning to the tab. It links to `/memories?invite=...`, where guests select their own name and share up to **10 completed photos per person across all visits**. Both people on a shared invitation can select either name; this is not independent identity verification.
+
+Uploads support still JPG, PNG, and WebP images up to **10 MiB and 40 megapixels**. HEIC/HEIF must be exported as JPG first. The browser uploads directly to the private Supabase bucket with a signed, non-overwriting ticket, avoiding Vercel's request-body limit. Server code checks the actual file size, image format, dimensions, and decodability, generates a smaller WebP thumbnail without EXIF metadata, then marks the photo ready. Original files (including any original metadata) are preserved for the admin to download. Photo finalization rechecks the schedule, so a transfer begun before closing but finished after closing is not added to the gallery unless sharing reopens in time.
+
+Photo reservations are atomic and pending transfers count toward the limit, preventing concurrent tabs from exceeding ten. Guests can retry the same selected files or use **Finish pending uploads** if their transfer succeeded but finalization was interrupted. Reservations last 125 minutes. The portal can **Release expired slots** after a further ten-minute grace period (about 2¼ hours total): it removes only expired unfinished/rejected objects and then releases their reservations. Completed photos are never removed by cleanup. Cleanup is manual and runs in batches of 50. This delay is intentional because issued upload tickets remain valid for two hours.
+
+**Our memories** shows paginated thumbnails, a filter for each named guest, a larger original-image viewer, and original downloads. Select up to ten originals per ZIP (up to 100 MiB of source files); ZIPs are assembled in the admin's browser, so use a desktop for large downloads. Thumbnails and originals use short-lived signed URLs; refresh the gallery if its thumbnail links expire. There is no public gallery. Storage/egress usage is billed or limited by your Supabase plan; monitor available storage before inviting everyone to upload.
 
 ## Personalize
 
@@ -61,7 +81,8 @@ Edit `src/config/wedding.ts` for names, date/time, venue, map URL, dress code, d
 1. Import this repository into Vercel with the Astro framework preset, Node 24, and build command `npm run build`. The included official adapter produces the static invitation plus server functions.
 2. Set all variables from `.env.example` in Vercel’s environment settings. Keep secrets out of Git and redeploy after updates.
 3. Use the final HTTPS/custom domain **before** generating and sharing QR codes. Codes made on localhost only work on that machine.
-4. Sign in at `/login`, create a test invitation, submit two attendees, confirm the database/dashboard/email results, update to one attendee, then decline and confirm the total becomes zero. Verify unauthorized `/api/admin` calls fail and check email retry behavior. Use separate development/test Supabase projects when practicing; the production dashboard has no delete feature.
-5. Test a phone scan, envelope opening, audio controls, one/two-person selection, and keyboard navigation before sharing with guests.
+4. Sign in at `/login`, create a test invitation, submit both names, confirm the database/dashboard/email results, update to one attendee, then decline and confirm the total becomes zero. Verify unauthorized admin API calls fail and check email retry behavior. Use separate development/test Supabase projects when practicing.
+5. Set uploads to **Open now** in a test project, upload one real photo for each named guest, and verify attribution, thumbnails, original downloads, and a ZIP. Verify an eleventh photo is rejected, a different invitation cannot upload for those guests, and closing uploads hides the button and blocks finalization. Configure the real schedule after testing.
+6. Test a phone scan, envelope opening, audio controls, named guest selection, and keyboard navigation before sharing with guests.
 
-This repository is prepared for Vercel but is not deployed and contains no live credentials. The current build uses targeted dependency overrides for patched Vercel transitive dependencies; recheck them when upgrading the adapter.
+This repository is prepared for Vercel. Live credentials belong only in the ignored `.env` and hosting environment settings. The current build uses targeted dependency overrides for patched Vercel transitive dependencies; recheck them when upgrading the adapter. The function duration is bounded at 60 seconds; large photo batches are uploaded sequentially as separate requests.

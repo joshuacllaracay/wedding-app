@@ -21,6 +21,7 @@ export async function deliverNotification(id: string): Promise<boolean> {
         `Email: ${payload.email}`,
         `Response: ${payload.attending ? 'Attending' : 'Unable to attend'}`,
         `Guests attending: ${payload.guests}`,
+        ...(payload.attending_names ? [`Names attending: ${payload.attending_names.join(', ') || 'None'}`] : []),
         '', 'Message:', payload.message,
         '', 'This response is saved in your private wedding guest dashboard.',
       ].join('\n'),
