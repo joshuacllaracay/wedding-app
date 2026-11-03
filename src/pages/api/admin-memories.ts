@@ -35,6 +35,15 @@ export const POST: APIRoute = async context => {
       if (error) throw error;
       return json({ saved: true });
     }
+    if (body.action === 'remove') {
+      if (!isUuid(body.id)) throw new InputError('Invalid photo.');
+      const { data: photo, error } = await store.rpc('remove_memory_photo', { p_id: body.id });
+      if (error) throw error;
+      if (!photo) return json({ removed: true });
+      const { error: removeError } = await store.storage.from(MEMORY_BUCKET).remove([photo.original_path, photo.thumbnail_path]);
+      // A Storage failure must not return the photo to the gallery. Cleanup can retry.
+      return json({ removed: true, cleanupPending: !!removeError });
+    }
     if (body.action === 'cleanup') {
       // Claim expired unfinished uploads before touching Storage. Ready photos never qualify.
       // Ten-minute grace also allows an in-flight finalization to finish before removal.

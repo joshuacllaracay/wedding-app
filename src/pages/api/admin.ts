@@ -9,13 +9,19 @@ export const GET: APIRoute = async (context) => {
     const store = db();
     const rows: Record<string, unknown>[] = [];
     for (let start = 0; ; start += 500) {
-      const { data, error } = await store.from('invitations').select('id,token,household,max_guests,created_at,invitation_guests(id,name,position,attending),responses(name,email,attending,guests,message,updated_at)').order('created_at').order('id').range(start, start + 499);
+      const { data, error } = await store.from('invitations').select('id,token,household,max_guests,created_at,invitation_guests(id,name,position,attending),responses(name,email,attending,guests,message,updated_at)').is('removed_at', null).order('created_at').order('id').range(start, start + 499);
       if (error) throw error;
       rows.push(...data); if (data.length < 500) break;
     }
     const { count, error } = await store.from('notification_outbox').select('id', { count: 'exact', head: true }).neq('status', 'sent');
     if (error) throw error;
-    return json({ invitations: rows, pendingEmails: count ?? 0 });
+    const photoGuests: { id: string; name: string }[] = [];
+    for (let start = 0; ; start += 500) {
+      const { data, error } = await store.from('invitation_guests').select('id,name').order('id').range(start, start + 499);
+      if (error) throw error;
+      photoGuests.push(...data); if (data.length < 500) break;
+    }
+    return json({ invitations: rows, photoGuests, pendingEmails: count ?? 0 });
   } catch (error) { return failure(error); }
 };
 export const POST: APIRoute = async (context) => {
@@ -23,6 +29,12 @@ export const POST: APIRoute = async (context) => {
     await requireAdmin(context);
     const body = await readJson(context.request);
     const store = db();
+    if (body.action === 'remove') {
+      if (!isUuid(body.id)) throw new InputError('Invalid invitation.');
+      const { error } = await store.rpc('remove_invitation', { p_id: body.id });
+      if (error) throw error;
+      return json({ removed: true });
+    }
     if (body.action === 'retry') {
       const { data, error } = await store.from('notification_outbox').select('id').neq('status', 'sent').order('created_at').limit(10);
       if (error) throw error;
@@ -31,7 +43,7 @@ export const POST: APIRoute = async (context) => {
     }
     if (body.action === 'rotate') {
       if (!isUuid(body.id)) throw new InputError('Invalid invitation.');
-      const { error } = await store.from('invitations').update({ token: crypto.randomUUID() }).eq('id', body.id);
+      const { error } = await store.from('invitations').update({ token: crypto.randomUUID() }).eq('id', body.id).is('removed_at', null);
       if (error) throw error;
       return json({ success: true });
     }

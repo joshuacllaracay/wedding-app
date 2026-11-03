@@ -6,7 +6,7 @@ import { MAX_PHOTO_BYTES, MEMORY_BUCKET, memoryError } from './memories';
 export async function invitationByToken(token: unknown) {
   if (!isUuid(token)) throw new InputError('Please open your private invitation link.', 400);
   const store = db();
-  const { data, error } = await store.from('invitations').select('id,household,invitation_guests(id,name,position,attending)').eq('token', token).maybeSingle();
+  const { data, error } = await store.from('invitations').select('id,household,invitation_guests(id,name,position,attending)').eq('token', token).is('removed_at', null).maybeSingle();
   if (error) throw error;
   if (!data) throw new InputError('This invitation was not found. Please ask the couple for your latest link.', 404);
   return data;

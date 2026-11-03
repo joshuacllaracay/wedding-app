@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { csvCell } from '../lib/validation';
+import { invitationLink } from '../lib/invitation-link';
 import { updateGuestFilter } from './admin-memories';
 type Rsvp = { name: string; email: string; attending: boolean; guests: number; message: string; updated_at: string };
 type Invitation = { id: string; token: string; household: string; max_guests: number; created_at: string; invitation_guests:{id:string;name:string;position:number;attending:boolean|null}[]; responses: Rsvp | Rsvp[] | null };
@@ -9,7 +10,7 @@ let loaded = false;
 let editingId: string | null = null;
 const status = $('#dashboard-status');
 const responseFor = (invitation: Invitation) => Array.isArray(invitation.responses) ? invitation.responses[0] : invitation.responses;
-const linkFor = (invitation: Pick<Invitation, 'token'>) => `${location.origin}/?invite=${invitation.token}`;
+const linkFor = (invitation: Pick<Invitation, 'token'>) => invitationLink(invitation.token);
 const element = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string) => {
   const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node;
 };
@@ -70,7 +71,18 @@ function render() {
       updateGuestFields();$('#create-invitation-submit').textContent='Save guest names';$('#cancel-edit').hidden=false;
       $<HTMLInputElement>('#first-guest').focus();$('#create-invitation').scrollIntoView({behavior:'smooth',block:'center'});
     });
-    actions.append(copy, qr, edit, rotate); sharing.append(actions); row.append(name, attendance, count, details, sharing); rows.append(row);
+    const remove = element('button', 'Remove invitation'); remove.className = 'danger-link';
+    remove.addEventListener('click', async () => {
+      if (!window.confirm(`Remove ${invite.household} (${invite.invitation_guests.map(g => g.name).join(' & ')})? All people on this invitation will be removed from the guest list and totals. Their link and QR will stop working. Existing photos will be kept; you can remove them separately.`)) return;
+      remove.disabled = true;
+      try {
+        await request({ action: 'remove', id: invite.id });
+        if (editingId === invite.id) resetEditor();
+        if ($<HTMLInputElement>('#created-link').value === linkFor(invite)) $('#created-invitation').hidden = true;
+        await load(); status.textContent = `Invitation removed for ${invite.household}. Existing memories were kept.`;
+      } catch (error) { showError(error); remove.disabled = false; }
+    });
+    actions.append(copy, qr, edit, rotate, remove); sharing.append(actions); row.append(name, attendance, count, details, sharing); rows.append(row);
   }
   $('#guest-list-empty').hidden = filtered.length > 0;
   $('#guest-list-empty').textContent = search ? 'No guests match your search.' : 'No invitations yet. Create your first one above.';
@@ -80,7 +92,7 @@ async function load() {
   status.textContent = 'Loading your guest list…';
   try {
     const result = await request(); invitations = result.invitations; loaded = true;
-    updateGuestFilter(invitations.flatMap(invite=>invite.invitation_guests));
+    updateGuestFilter(result.photoGuests);
     $('#notification-bar').hidden = result.pendingEmails === 0;
     $('#pending-emails').textContent = String(result.pendingEmails);
     render(); status.textContent = '';

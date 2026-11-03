@@ -24,6 +24,17 @@ async function downloadOne(photo:Photo) {
   const result=await api({action:'download',ids:[photo.id]});const item=result.downloads[0] as Download;
   const anchor=document.createElement('a');anchor.href=item.url;anchor.download=item.filename;anchor.rel='noreferrer';anchor.click();
 }
+async function removePhoto(photo:Photo, button:HTMLButtonElement) {
+  if (!window.confirm(`Remove “${photo.filename}” shared by ${guestName(photo)}? It will disappear from the gallery and its original and thumbnail will be deleted. This cannot be undone.`)) return;
+  button.disabled=true;
+  try {
+    const result=await api({action:'remove',id:photo.id});
+    selected.delete(photo.id);
+    if(current?.id===photo.id){current=undefined;$<HTMLDialogElement>('#photo-viewer').close();$<HTMLImageElement>('#photo-viewer-image').removeAttribute('src');}
+    await load();
+    status.textContent=result.cleanupPending?'Photo removed from the gallery. File cleanup needs a retry; use Release expired slots once it becomes available.':'Photo removed from the gallery.';
+  }catch(error){tell(error);}finally{button.disabled=false;}
+}
 function renderGallery() {
   const grid=$('#gallery-grid');grid.replaceChildren();
   for(const photo of photos){
@@ -35,14 +46,18 @@ function renderGallery() {
     const label=document.createElement('label');const check=document.createElement('input');check.type='checkbox';check.checked=selected.has(photo.id);const text=document.createElement('span');text.textContent='Select for ZIP';label.append(check,text);
     check.addEventListener('change',()=>{if(check.checked&&selected.size>=10){check.checked=false;status.textContent='Select up to 10 photos per ZIP.';return;}if(check.checked)selected.add(photo.id);else selected.delete(photo.id);updateSelection();});
     const download=document.createElement('button');download.className='text-link';download.textContent='Download original ↓';download.addEventListener('click',()=>{void downloadOne(photo).catch(tell);});
-    caption.append(name,filename,label,download);card.append(view,caption);grid.append(card);
+    const remove=document.createElement('button');remove.type='button';remove.className='text-link danger-link';remove.textContent='Remove photo';remove.setAttribute('aria-label',`Remove ${photo.filename} by ${guestName(photo)}`);remove.addEventListener('click',()=>{void removePhoto(photo,remove);});
+    const actions=document.createElement('div');actions.className='photo-actions';actions.append(download,remove);
+    caption.append(name,filename,label,actions);card.append(view,caption);grid.append(card);
   }
   $('#gallery-empty').hidden=photos.length>0;updateSelection();
 }
 async function load() {
   const version=++loadingVersion;status.textContent='Loading your memories…';
   try{
-    const data=await api();if(version!==loadingVersion)return;photos=data.photos;
+    const data=await api();if(version!==loadingVersion)return;
+    const lastPage=Math.max(0,Math.ceil(data.total/24)-1);if(page>lastPage){page=lastPage;await load();return;}
+    photos=data.photos;
     $('#gallery-total').textContent=`${data.total} photo${data.total===1?'':'s'} shared${filter.value?' by this guest':''}`;
     $('#gallery-page').textContent=`Page ${page+1} of ${Math.max(1,Math.ceil(data.total/24))}`;
     $<HTMLButtonElement>('#gallery-prev').disabled=page===0;$<HTMLButtonElement>('#gallery-next').disabled=(page+1)*24>=data.total;
@@ -69,6 +84,7 @@ $('#gallery-prev').addEventListener('click',()=>{if(page>0){page--;void load();}
 $('#gallery-next').addEventListener('click',()=>{page++;void load();});
 $('#close-photo-viewer').addEventListener('click',()=>$<HTMLDialogElement>('#photo-viewer').close());
 $('#photo-viewer-download').addEventListener('click',()=>{if(current)void downloadOne(current).catch(tell);});
+$('#photo-viewer-remove').addEventListener('click',()=>{if(current)void removePhoto(current,$<HTMLButtonElement>('#photo-viewer-remove'));});
 $('#download-selected').addEventListener('click',async()=>{
   if(zipBusy)return;zipBusy=true;updateSelection();
   try{

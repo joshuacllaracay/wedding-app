@@ -16,6 +16,7 @@ before(async()=>{
   // Storage is a managed Supabase schema; model its bucket metadata for SQL tests.
   await pg.exec('create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);');
   await pg.exec(await readFile(new URL('../supabase/migrations/002_guest_portal_memories.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../supabase/migrations/003_admin_removal.sql',import.meta.url),'utf8'));
   const created=await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Alex & Sam',array['Alex','Sam']) as result");token=created.rows[0].result.token;
   const guests=await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[created.rows[0].result.id]);[guest1,guest2]=guests.rows.map(g=>g.id);
   const outsider=await pg.query<{result:{id:string}}>("select public.create_named_invitation('Jamie',array['Jamie']) as result");
@@ -90,4 +91,44 @@ test('form validators enforce names, selected guests, image limits and timezone-
   assert.equal(parseMemorySettings({mode:'scheduled',opensAt:'2027-06-12T10:00:00+08:00',closesAt:'2027-06-15T10:00:00+08:00'}).opens_at,'2027-06-12T02:00:00.000Z');
   assert.throws(()=>parseMemorySettings({mode:'scheduled',opensAt:'2027-06-12T10:00',closesAt:'2027-06-15T10:00'}));
   assert.throws(()=>parseMemorySettings({mode:'scheduled',opensAt:'2027-06-15T10:00:00Z',closesAt:'2027-06-12T10:00:00Z'}));
+});
+
+test('removing an invitation revokes its QR, excludes its RSVP, and preserves named memories',async()=>{
+  const created=(await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Remove me',array['Pat','Lee']) as result")).rows[0].result;
+  const guest=(await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[created.id])).rows[0].id;
+  await pg.query("select public.submit_named_rsvp($1,'Pat','pat@example.com',true,$2,'Yes')",[created.token,[guest]]);
+  await pg.exec("update public.memory_settings set mode='open'");
+  const photo=crypto.randomUUID();
+  await pg.query("select public.reserve_memory_photo($1,$2,$3,'photo.jpg','image/jpeg',100)",[created.token,guest,photo]);
+  await pg.query('select public.complete_memory_photo($1,$2)',[created.token,photo]);
+  await pg.query('select public.remove_invitation($1)',[created.id]);
+  await pg.query('select public.remove_invitation($1)',[created.id]);
+  assert.equal((await pg.query('select id from public.invitations where token=$1',[created.token])).rows.length,0);
+  assert.equal((await pg.query('select r.* from public.responses r join public.invitations i on i.id=r.invitation_id where i.removed_at is null and i.id=$1',[created.id])).rows.length,0);
+  assert.equal((await pg.query('select * from public.notification_outbox where invitation_id=$1',[created.id])).rows.length,0);
+  assert.equal((await pg.query("select * from public.memory_photos where id=$1 and status='ready'",[photo])).rows.length,1);
+  assert.equal((await pg.query('select * from public.invitation_guests where invitation_id=$1',[created.id])).rows.length,2);
+  await assert.rejects(pg.query("select public.submit_named_rsvp($1,'Pat','pat@example.com',true,$2,'Yes')",[created.token,[guest]]),/INVITATION_NOT_FOUND/);
+  await assert.rejects(pg.query("select public.reserve_memory_photo($1,$2,$3,'photo.jpg','image/jpeg',100)",[created.token,guest,crypto.randomUUID()]),/GUEST_NOT_FOUND/);
+  await assert.rejects(pg.query('select public.complete_memory_photo($1,$2)',[created.token,photo]),/GUEST_NOT_FOUND/);
+});
+
+test('photo removal hides before storage cleanup, is retryable, and blocks finalization replay',async()=>{
+  const id=(await reserve(guest2)).rows[0].result.id;
+  // A pending upload cannot be removed through the completed-photo moderation action.
+  assert.equal((await pg.query<{result:unknown}>('select public.remove_memory_photo($1) as result',[id])).rows[0].result,null);
+  await pg.query('select public.complete_memory_photo($1,$2)',[token,id]);
+  const remove=()=>pg.query<{result:{original_path:string;thumbnail_path:string}}>('select public.remove_memory_photo($1) as result',[id]);
+  const first=(await remove()).rows[0].result;
+  assert.ok(first.original_path.endsWith(`${id}.jpg`));assert.ok(first.thumbnail_path.endsWith(`${id}.webp`));
+  assert.deepEqual((await remove()).rows[0].result,first);
+  assert.equal((await pg.query("select id from public.memory_photos where id=$1 and status='ready'",[id])).rows.length,0);
+  assert.equal((await pg.query("select id from public.memory_photos where id=$1 and status='cleaning'",[id])).rows.length,1);
+  await assert.rejects(pg.query('select public.complete_memory_photo($1,$2)',[token,id]),/UPLOAD_EXPIRED/);
+  for(const role of ['anon','authenticated']){
+    for(const fn of ['remove_invitation','remove_memory_photo']){
+      const result=await pg.query<{allowed:boolean}>("select has_function_privilege($1,$2,'EXECUTE') as allowed",[role,`public.${fn}(uuid)`]);
+      assert.equal(result.rows[0].allowed,false);
+    }
+  }
 });

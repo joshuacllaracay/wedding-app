@@ -26,6 +26,7 @@ The tests execute the SQL functions using an embedded PostgreSQL engine (PGlite)
 ## Connect Supabase
 
 1. For a new project, run `supabase/schema.sql` **once**, then `supabase/migrations/002_guest_portal_memories.sql` **once** in the SQL editor. If you already ran `schema.sql`, run **only the new migration**. It preserves existing invitation tokens, responses, and notifications, adds named guests and photo settings, and creates the private `wedding-memories` storage bucket. Run the migration before starting/deploying this version of the app.
+   Then run `supabase/migrations/003_admin_removal.sql` once to enable invitation removal and photo moderation. Existing projects that already ran migration 002 need only migration 003 before deploying this update.
 2. Copy `.env.example` to `.env` and enter the project URL, anon key, and service-role key. All variables in this project are server-only; never prefix these keys with `PUBLIC_`.
 3. In Supabase Authentication → Users, create your own email/password user as the wedding administrator. Your Supabase dashboard login does not automatically create a portal user. Add this user UUID to `ADMIN_USER_IDS`. The bride and groom do not need accounts when you manage the portal for them. Additional admin IDs can be comma-separated if you later want to give them access. Disable public sign-ups if you do not need them. The application provides no public registration screen.
 4. Restart Astro after changing environment variables. Open `/login`, sign in, then use `/admin` to create invitations with a **one- or two-person allowance**.
@@ -80,9 +81,15 @@ Edit `src/config/wedding.ts` for names, date/time, venue, map URL, dress code, d
 
 1. Import this repository into Vercel with the Astro framework preset, Node 24, and build command `npm run build`. The included official adapter produces the static invitation plus server functions.
 2. Set all variables from `.env.example` in Vercel’s environment settings. Keep secrets out of Git and redeploy after updates.
-3. Use the final HTTPS/custom domain **before** generating and sharing QR codes. Codes made on localhost only work on that machine.
+3. Shared invitation links and QR codes always use `invitationSiteUrl` in `src/config/wedding.ts`, currently `https://wedding-app-ochre-six.vercel.app`, even when the admin opens a protected preview/deployment URL. After connecting a custom domain, update this setting and redeploy. Previously shared links and downloaded QR images do not change automatically; copy/download them again.
 4. Sign in at `/login`, create a test invitation, submit both names, confirm the database/dashboard/email results, update to one attendee, then decline and confirm the total becomes zero. Verify unauthorized admin API calls fail and check email retry behavior. Use separate development/test Supabase projects when practicing.
 5. Set uploads to **Open now** in a test project, upload one real photo for each named guest, and verify attribution, thumbnails, original downloads, and a ZIP. Verify an eleventh photo is rejected, a different invitation cannot upload for those guests, and closing uploads hides the button and blocks finalization. Configure the real schedule after testing.
 6. Test a phone scan, envelope opening, audio controls, named guest selection, and keyboard navigation before sharing with guests.
 
 This repository is prepared for Vercel. Live credentials belong only in the ignored `.env` and hosting environment settings. The current build uses targeted dependency overrides for patched Vercel transitive dependencies; recheck them when upgrading the adapter. The function duration is bounded at 60 seconds; large photo batches are uploaded sequentially as separate requests.
+
+## Removing invitations and photos
+
+In the guest list, **Remove invitation** removes the entire one- or two-person invitation from the list, totals, and CSV. A confirmation names the people affected. Removal atomically rotates its private token, so the old link/QR cannot read the RSVP, submit changes, or finalize photos. The archived invitation and RSVP remain in the private database; completed memories and their guest names remain in the gallery and guest filter. Unsent notification jobs are removed; email already in flight or delivered cannot be recalled. There is no restore screen.
+
+Use **Remove photo** on a gallery card or in the larger viewer to moderate a completed photo. Confirmation is required. The server hides it from the gallery and new original/ZIP download requests before deleting its original and thumbnail from private Storage. Removal keeps a hidden reservation so still-valid upload tickets and delayed finalizers cannot restore the photo. Use **Release expired slots** after its expiry/grace period to retry failed file deletion and release the slot. Already downloaded or cached copies cannot be recalled. Guests cannot perform either admin removal action.
