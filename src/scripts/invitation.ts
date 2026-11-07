@@ -25,7 +25,7 @@ openButton.addEventListener('click', () => {
     document.body.classList.remove('envelope-active');
     main.focus({ preventScroll: true });
     window.setTimeout(() => { envelope.hidden = true; }, reducedMotion ? 0 : 700);
-  }, reducedMotion ? 0 : 1550);
+  }, reducedMotion ? 0 : 2850); // flap + letter (1.3s), heart sketch (to 2.5s), short hold, then a 0.65s fade = 3.5s
 }, { once: true });
 music?.addEventListener('click', () => { if (!audio) return; if (audio.paused) void playMusic(); else { audio.pause(); updateMusic(); } });
 audio?.addEventListener('pause', updateMusic);
