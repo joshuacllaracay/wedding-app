@@ -72,8 +72,13 @@ async function loadInvitation(code: string) {
   button.disabled = true;
   setStatus('Finding your invitation…', true);
   try {
-    const data = await api('/api/invitation', { token: code.trim() });
-    token = code.trim();
+    // Accept a pasted full link as well as a 4-digit code or the long private code.
+    let entered = code.trim();
+    try { entered = new URL(entered).searchParams.get('invite') ?? entered; } catch { /* not a URL */ }
+    const data = await api('/api/invitation', { token: entered });
+    token = data.token;
+    // Keep the private link in the address bar so refreshing and photo sharing keep working.
+    const url = new URL(location.href); url.searchParams.set('invite', token); history.replaceState(null, '', url);
     $('#household-name').textContent = data.household;
     $('#guest-allowance').textContent = `(up to ${data.maxGuests})`;
     renderGuestChoices(data.guests);
@@ -112,7 +117,7 @@ form.addEventListener('submit', async event => {
   try {
     await api('/api/rsvp', { token, name: values.get('name'), email: values.get('email'), attending, guestIds, message: values.get('message'), website: values.get('website') });
     form.hidden = true; success.hidden = false;
-    $('#success-copy').textContent = attending ? `We have saved your response for ${guestIds.length} ${guestIds.length === 1 ? 'person' : 'people'}. We cannot wait to celebrate with you.` : 'Thank you for letting us know. You will be with us in spirit, and your message means so much.';
+    $('#success-copy').textContent = attending ? `We have saved your response for ${guestIds.length} ${guestIds.length === 1 ? 'person' : 'people'}. We cannot wait to celebrate with you. A confirmation is on its way to your email.` : 'Thank you for letting us know. You will be with us in spirit, and your message means so much. A confirmation is on its way to your email.';
     $('#submit-rsvp').firstChild!.textContent = 'Update with love ';
     setStatus('');
     success.setAttribute('tabindex', '-1'); success.focus({ preventScroll: true });

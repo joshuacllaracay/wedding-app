@@ -1,3 +1,4 @@
+import { confirmDialog } from '../lib/confirm-dialog';
 type Photo={id:string;guest_id:string;filename:string;byte_size:number;completed_at:string;thumbnailUrl:string|null;invitation_guests:{name:string}|{name:string}[]};
 type Download={id:string;filename:string;byteSize:number;url:string};
 const $=<T extends HTMLElement>(s:string)=>document.querySelector<T>(s)!;
@@ -25,7 +26,7 @@ async function downloadOne(photo:Photo) {
   const anchor=document.createElement('a');anchor.href=item.url;anchor.download=item.filename;anchor.rel='noreferrer';anchor.click();
 }
 async function removePhoto(photo:Photo, button:HTMLButtonElement) {
-  if (!window.confirm(`Remove “${photo.filename}” shared by ${guestName(photo)}? It will disappear from the gallery and its original and thumbnail will be deleted. This cannot be undone.`)) return;
+  if (!await confirmDialog({tone:'danger',title:'Remove this photo?',message:`“${photo.filename}” shared by ${guestName(photo)} will be permanently deleted.`,details:['It disappears from the gallery.','The original and thumbnail files are deleted.','This cannot be undone.'],confirmLabel:'Remove photo',cancelLabel:'Keep photo'})) return;
   button.disabled=true;
   try {
     const result=await api({action:'remove',id:photo.id});
@@ -80,6 +81,7 @@ $('#cleanup-photos').addEventListener('click',async()=>{
 });
 filter.addEventListener('change',()=>{page=0;selected.clear();void load();});
 $('#gallery-refresh').addEventListener('click',()=>{void load();});
+window.addEventListener('guest-list-changed',()=>{selected.clear();updateSelection();void load();});
 $('#gallery-prev').addEventListener('click',()=>{if(page>0){page--;void load();}});
 $('#gallery-next').addEventListener('click',()=>{page++;void load();});
 $('#close-photo-viewer').addEventListener('click',()=>$<HTMLDialogElement>('#photo-viewer').close());

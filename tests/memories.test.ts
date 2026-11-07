@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
-import { parseGuestNames, parseNamedRsvp } from '../src/lib/validation';
+import { normalizeInvitationCode, parseGuestNames, parseNamedRsvp } from '../src/lib/validation';
 import { parseMemorySettings, parsePhoto } from '../src/lib/memories';
 
 const pg=new PGlite();
@@ -17,6 +17,8 @@ before(async()=>{
   await pg.exec('create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);');
   await pg.exec(await readFile(new URL('../supabase/migrations/002_guest_portal_memories.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../supabase/migrations/003_admin_removal.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../supabase/migrations/004_hard_delete_invitation.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../supabase/migrations/005_invitation_codes.sql',import.meta.url),'utf8'));
   const created=await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Alex & Sam',array['Alex','Sam']) as result");token=created.rows[0].result.token;
   const guests=await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[created.rows[0].result.id]);[guest1,guest2]=guests.rows.map(g=>g.id);
   const outsider=await pg.query<{result:{id:string}}>("select public.create_named_invitation('Jamie',array['Jamie']) as result");
@@ -113,6 +115,25 @@ test('removing an invitation revokes its QR, excludes its RSVP, and preserves na
   await assert.rejects(pg.query('select public.complete_memory_photo($1,$2)',[created.token,photo]),/GUEST_NOT_FOUND/);
 });
 
+test('deleting an invitation permanently removes its guests, RSVP, emails and photos',async()=>{
+  const created=(await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Delete me',array['Kim','Ray']) as result")).rows[0].result;
+  const guests=(await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[created.id])).rows.map(g=>g.id);
+  await pg.query("select public.submit_named_rsvp($1,'Kim','kim@example.com',true,$2,'Yes')",[created.token,[guests[0]]]);
+  await pg.exec("update public.memory_settings set mode='open'");
+  const photo=crypto.randomUUID();
+  await pg.query("select public.reserve_memory_photo($1,$2,$3,'photo.jpg','image/jpeg',100)",[created.token,guests[0],photo]);
+  await pg.query('select public.complete_memory_photo($1,$2)',[created.token,photo]);
+  const result=(await pg.query<{result:{guest_ids:string[];paths:string[]}}>('select public.delete_invitation($1) as result',[created.id])).rows[0].result;
+  assert.deepEqual([...result.guest_ids].sort(),[...guests].sort());
+  assert.deepEqual([...result.paths].sort(),[`originals/${guests[0]}/${photo}.jpg`,`thumbnails/${guests[0]}/${photo}.webp`]);
+  for(const [table,column] of [['invitations','id'],['responses','invitation_id'],['notification_outbox','invitation_id'],['invitation_guests','invitation_id']])
+    assert.equal((await pg.query(`select 1 from public.${table} where ${column}=$1`,[created.id])).rows.length,0,table);
+  assert.equal((await pg.query('select 1 from public.memory_photos where id=$1',[photo])).rows.length,0);
+  assert.equal((await pg.query<{result:unknown}>('select public.delete_invitation($1) as result',[created.id])).rows[0].result,null);
+  for(const role of ['anon','authenticated'])
+    assert.equal((await pg.query<{allowed:boolean}>("select has_function_privilege($1,'public.delete_invitation(uuid)','EXECUTE') as allowed",[role])).rows[0].allowed,false);
+});
+
 test('photo removal hides before storage cleanup, is retryable, and blocks finalization replay',async()=>{
   const id=(await reserve(guest2)).rows[0].result.id;
   // A pending upload cannot be removed through the completed-photo moderation action.
@@ -131,4 +152,41 @@ test('photo removal hides before storage cleanup, is retryable, and blocks final
       assert.equal(result.rows[0].allowed,false);
     }
   }
+});
+
+test('every invitation gets a unique 4-digit code that resolves to its private token',async()=>{
+  const legacy=(await pg.query<{code:string}>('select code from public.invitations where token=$1',[legacyToken])).rows[0];
+  assert.match(legacy.code,/^[0-9]{4}$/);
+  const created=(await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Coded',array['Max']) as result")).rows[0].result;
+  const {code}=(await pg.query<{code:string}>('select code from public.invitations where id=$1',[created.id])).rows[0];
+  assert.match(code,/^[0-9]{4}$/);
+  const codes=(await pg.query<{code:string}>('select code from public.invitations')).rows.map(r=>r.code);
+  assert.equal(new Set(codes).size,codes.length);
+  const lookup=(c:string,client='client-a')=>pg.query<{token:string|null}>('select public.lookup_invitation_code($1,$2) as token',[c,client]);
+  assert.equal((await lookup(code)).rows[0].token,created.token);
+  // Replacing the link also replaces the code; the old code stops working.
+  const rotated=(await pg.query<{result:{token:string;code:string}}>('select public.rotate_invitation($1) as result',[created.id])).rows[0].result;
+  assert.notEqual(rotated.token,created.token);assert.notEqual(rotated.code,code);
+  assert.equal((await lookup(rotated.code)).rows[0].token,rotated.token);
+  assert.notEqual((await lookup(code)).rows[0].token,rotated.token);
+});
+
+test('failed code lookups are rate limited per client',async()=>{
+  await pg.exec('delete from public.invitation_code_attempts');
+  const used=new Set((await pg.query<{code:string}>('select code from public.invitations')).rows.map(r=>r.code));
+  const wrong=[...Array(10000).keys()].map(n=>String(n).padStart(4,'0')).filter(c=>!used.has(c));
+  for(let i=0;i<10;i++) assert.equal((await pg.query<{token:string|null}>("select public.lookup_invitation_code($1,'guesser') as token",[wrong[i]])).rows[0].token,null);
+  await assert.rejects(pg.query("select public.lookup_invitation_code($1,'guesser')",[wrong[10]]),/TOO_MANY_ATTEMPTS/);
+  // Another visitor is unaffected.
+  const real=(await pg.query<{code:string;token:string}>('select code,token from public.invitations where removed_at is null limit 1')).rows[0];
+  assert.equal((await pg.query<{token:string}>("select public.lookup_invitation_code($1,'someone-else') as token",[real.code])).rows[0].token,real.token);
+  for(const role of ['anon','authenticated'])
+    assert.equal((await pg.query<{allowed:boolean}>("select has_function_privilege($1,'public.lookup_invitation_code(text,text)','EXECUTE') as allowed",[role])).rows[0].allowed,false);
+});
+
+test('short codes are normalized from typed input',()=>{
+  assert.equal(normalizeInvitationCode(' 48 21 '),'4821');
+  assert.equal(normalizeInvitationCode('48-21'),'4821');
+  assert.equal(normalizeInvitationCode('482'),null);
+  assert.equal(normalizeInvitationCode('1849b4b5-5132-4cff-b2f9-316ea7b71604'),null);
 });

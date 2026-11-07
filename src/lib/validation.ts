@@ -2,6 +2,12 @@ export class InputError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
 export const isUuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+// Accepts "1234", "12 34" or "12-34". Returns the 4 digits, or null if it is not a short code.
+export function normalizeInvitationCode(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const digits = value.replace(/[\s-]/g, '');
+  return /^[0-9]{4}$/.test(digits) ? digits : null;
+}
 export function textField(value: unknown, label: string, max: number, required = true): string {
   if (typeof value !== 'string') throw new InputError(`Please enter ${label}.`);
   const text = value.trim();
