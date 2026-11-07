@@ -56,7 +56,7 @@ function render() {
   document.querySelectorAll<HTMLButtonElement>('.sort-header').forEach(button => {
     const active = button.dataset.sort === sortKey;
     button.classList.toggle('active', active);
-    button.querySelector('span')!.textContent = active ? sortDir === 1 ? '↑' : '↓' : '↕';
+    button.querySelector('span')!.textContent = active ? sortDir === 1 ? '↑' : '↓' : '↕︎';
     button.closest('th')!.setAttribute('aria-sort', active ? sortDir === 1 ? 'ascending' : 'descending' : 'none');
   });
   const responses = invitations.map(responseFor).filter((response): response is Rsvp => !!response);
