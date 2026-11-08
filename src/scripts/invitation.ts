@@ -72,7 +72,7 @@ async function loadInvitation(code: string) {
   button.disabled = true;
   setStatus('Finding your invitation…', true);
   try {
-    // Accept a pasted full link as well as a 4-digit code or the long private code.
+    // Accept a pasted full link as well as a 6-character code or the long private code.
     let entered = code.trim();
     try { entered = new URL(entered).searchParams.get('invite') ?? entered; } catch { /* not a URL */ }
     const data = await api('/api/invitation', { token: entered });

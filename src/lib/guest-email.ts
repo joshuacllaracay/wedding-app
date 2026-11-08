@@ -16,6 +16,7 @@ const oneLine = (text: string) => text.replace(/[\r\n]+/g, ' ').trim();
 
 export function guestConfirmationEmail(input: GuestEmailInput) {
   const couple = `${wedding.bride} & ${wedding.groom}`;
+  const siteHost = new URL(wedding.invitationSiteUrl).host;
   const name = oneLine(input.name);
   const names = input.attendingNames?.filter(Boolean) ?? [];
   const subject = input.attending
@@ -34,9 +35,10 @@ export function guestConfirmationEmail(input: GuestEmailInput) {
     'Your message to us:',
     input.message,
     '',
+    ...(input.code ? [`Your invitation code: ${input.code}`, ''] : []),
     'Need to change your response? Open your invitation:',
     input.link,
-    ...(input.code ? [`Or enter your invitation code ${input.code} on our website.`] : []),
+    ...(input.code ? [`Or go to ${siteHost} and enter your code ${input.code}.`] : []),
     '',
     `With love,`,
     couple,
@@ -49,7 +51,8 @@ export function guestConfirmationEmail(input: GuestEmailInput) {
     : 'Thank you for letting us know. We’re sorry you can’t make it, and we’ll miss you.'}</p>
 <p><strong>Your response:</strong> ${input.attending ? 'Attending' : 'Unable to attend'}${input.attending && names.length ? `<br><strong>Attending:</strong> ${escapeHtml(names.join(', '))}` : ''}</p>
 <p><strong>Your message to us:</strong><br>${escapeHtml(input.message).replace(/\r?\n/g, '<br>')}</p>
-<p>Need to change your response? <a href="${escapeHtml(input.link)}" style="color:#9d735c">Open your invitation</a>${input.code ? ` or enter your invitation code <strong>${escapeHtml(input.code)}</strong> on our website` : ''}.</p>
+${input.code ? `<p style="margin:22px 0;padding:14px 18px;background:#f3ece3;border:1px solid #e2d6c8;text-align:center"><span style="display:block;font-size:11px;letter-spacing:2px;color:#7b6b60">YOUR INVITATION CODE</span><strong style="display:block;font-size:24px;letter-spacing:6px;color:#493b32;margin-top:6px">${escapeHtml(input.code)}</strong></p>` : ''}
+<p>Need to change your response? <a href="${escapeHtml(input.link)}" style="color:#9d735c">Open your invitation</a>${input.code ? ` or go to ${escapeHtml(siteHost)} and enter your code` : ''}.</p>
 <p>With love,<br>${escapeHtml(couple)}</p>
 </div>`;
   return { subject, text, html };

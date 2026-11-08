@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { guestConfirmationEmail } from '../src/lib/guest-email';
 
-const base = { name: 'Alex', message: 'See you <there>!', link: 'https://example.com/?invite=abc', code: '4821' };
+const base = { name: 'Alex', message: 'See you <there>!', link: 'https://example.com/?invite=abc', code: 'K7MP3Q' };
 test('attending guests get a confirmation with names, link and code', () => {
   const email = guestConfirmationEmail({ ...base, attending: true, attendingNames: ['Alex', 'Sam'] });
   assert.match(email.subject, /confirmed/);
   assert.match(email.text, /Attending: Alex, Sam/);
   assert.match(email.text, /https:\/\/example\.com\/\?invite=abc/);
-  assert.match(email.text, /4821/);
+  assert.match(email.text, /Your invitation code: K7MP3Q/);
+  assert.match(email.html, /K7MP3Q/);
 });
 test('declining guests get a kind note without an attending list', () => {
   const email = guestConfirmationEmail({ ...base, attending: false, attendingNames: [] });

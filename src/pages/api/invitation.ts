@@ -21,10 +21,10 @@ export const POST: APIRoute = async (context) => {
       const { data: found, error: codeError } = await store.rpc('lookup_invitation_code', { p_code: code, p_client: await clientKey(request, address) });
       if (codeError?.message?.includes('TOO_MANY_ATTEMPTS')) throw new InputError('Too many incorrect codes. Please wait 15 minutes, or open the private link the couple sent you.', 429);
       if (codeError) throw codeError;
-      if (!found) throw new InputError('We could not find that invitation. Please check your 4-digit code.', 404);
+      if (!found) throw new InputError('We could not find that invitation. Please check your 6-character code.', 404);
       token = found;
     }
-    if (!isUuid(token)) throw new InputError('Please enter your 4-digit invitation code, or open your private link.');
+    if (!isUuid(token)) throw new InputError('Please enter your 6-character invitation code, or open your private link.');
     const { data, error } = await store.from('invitations').select('id, household, max_guests,invitation_guests(id,name,position,attending)').eq('token', token).is('removed_at', null).maybeSingle();
     if (error) throw error;
     if (!data) throw new InputError('We could not find that invitation. Please check your code.', 404);

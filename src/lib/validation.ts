@@ -2,11 +2,13 @@ export class InputError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
 export const isUuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-// Accepts "1234", "12 34" or "12-34". Returns the 4 digits, or null if it is not a short code.
+// Short invitation codes: 6 characters, no look-alikes (0/O, 1/I/L are never used).
+export const INVITATION_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+// Accepts "k7mp3q", "K7M P3Q" or "K7M-P3Q". Returns "K7MP3Q", or null if it is not a short code.
 export function normalizeInvitationCode(value: unknown): string | null {
   if (typeof value !== 'string') return null;
-  const digits = value.replace(/[\s-]/g, '');
-  return /^[0-9]{4}$/.test(digits) ? digits : null;
+  const code = value.replace(/[\s-]/g, '').toUpperCase();
+  return /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/.test(code) ? code : null;
 }
 export function textField(value: unknown, label: string, max: number, required = true): string {
   if (typeof value !== 'string') throw new InputError(`Please enter ${label}.`);

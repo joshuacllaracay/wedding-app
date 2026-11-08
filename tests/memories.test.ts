@@ -19,6 +19,8 @@ before(async()=>{
   await pg.exec(await readFile(new URL('../supabase/migrations/003_admin_removal.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../supabase/migrations/004_hard_delete_invitation.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../supabase/migrations/005_invitation_codes.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../supabase/migrations/006_guest_confirmation_email.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../supabase/migrations/007_six_character_codes.sql',import.meta.url),'utf8'));
   const created=await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Alex & Sam',array['Alex','Sam']) as result");token=created.rows[0].result.token;
   const guests=await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[created.rows[0].result.id]);[guest1,guest2]=guests.rows.map(g=>g.id);
   const outsider=await pg.query<{result:{id:string}}>("select public.create_named_invitation('Jamie',array['Jamie']) as result");
@@ -154,12 +156,12 @@ test('photo removal hides before storage cleanup, is retryable, and blocks final
   }
 });
 
-test('every invitation gets a unique 4-digit code that resolves to its private token',async()=>{
+test('every invitation gets a unique 6-character code that resolves to its private token',async()=>{
   const legacy=(await pg.query<{code:string}>('select code from public.invitations where token=$1',[legacyToken])).rows[0];
-  assert.match(legacy.code,/^[0-9]{4}$/);
+  assert.match(legacy.code,/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
   const created=(await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Coded',array['Max']) as result")).rows[0].result;
   const {code}=(await pg.query<{code:string}>('select code from public.invitations where id=$1',[created.id])).rows[0];
-  assert.match(code,/^[0-9]{4}$/);
+  assert.match(code,/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
   const codes=(await pg.query<{code:string}>('select code from public.invitations')).rows.map(r=>r.code);
   assert.equal(new Set(codes).size,codes.length);
   const lookup=(c:string,client='client-a')=>pg.query<{token:string|null}>('select public.lookup_invitation_code($1,$2) as token',[c,client]);
@@ -174,7 +176,9 @@ test('every invitation gets a unique 4-digit code that resolves to its private t
 test('failed code lookups are rate limited per client',async()=>{
   await pg.exec('delete from public.invitation_code_attempts');
   const used=new Set((await pg.query<{code:string}>('select code from public.invitations')).rows.map(r=>r.code));
-  const wrong=[...Array(10000).keys()].map(n=>String(n).padStart(4,'0')).filter(c=>!used.has(c));
+  const alphabet='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const wrong:string[]=[];
+  while(wrong.length<11){const c=Array.from({length:6},()=>alphabet[Math.floor(Math.random()*alphabet.length)]).join('');if(!used.has(c)&&!wrong.includes(c))wrong.push(c);}
   for(let i=0;i<10;i++) assert.equal((await pg.query<{token:string|null}>("select public.lookup_invitation_code($1,'guesser') as token",[wrong[i]])).rows[0].token,null);
   await assert.rejects(pg.query("select public.lookup_invitation_code($1,'guesser')",[wrong[10]]),/TOO_MANY_ATTEMPTS/);
   // Another visitor is unaffected.
@@ -185,8 +189,19 @@ test('failed code lookups are rate limited per client',async()=>{
 });
 
 test('short codes are normalized from typed input',()=>{
-  assert.equal(normalizeInvitationCode(' 48 21 '),'4821');
-  assert.equal(normalizeInvitationCode('48-21'),'4821');
-  assert.equal(normalizeInvitationCode('482'),null);
+  assert.equal(normalizeInvitationCode(' k7m p3q '),'K7MP3Q');
+  assert.equal(normalizeInvitationCode('K7M-P3Q'),'K7MP3Q');
+  assert.equal(normalizeInvitationCode('K7MP3'),null);
+  // Look-alike characters are never part of a code.
+  assert.equal(normalizeInvitationCode('K7MP3O'),null);
+  assert.equal(normalizeInvitationCode('K7MP31'),null);
+  assert.equal(normalizeInvitationCode('4821'),null);
   assert.equal(normalizeInvitationCode('1849b4b5-5132-4cff-b2f9-316ea7b71604'),null);
+});
+
+test('6-character migration replaces every code and rejects 4-digit codes',async()=>{
+  const codes=(await pg.query<{code:string}>('select code from public.invitations')).rows.map(r=>r.code);
+  assert.ok(codes.length>0);
+  for(const c of codes) assert.match(c,/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
+  await assert.rejects(pg.query("update public.invitations set code='4821' where code=$1",[codes[0]]),/invitations_code_check/);
 });
