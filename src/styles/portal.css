@@ -92,9 +92,9 @@
 .confirm-dialog[data-tone=danger] .confirm-dialog-confirm:hover{background:#6f2a26}
 @media(prefers-reduced-motion:reduce){.confirm-dialog,.confirm-dialog::backdrop{transition:none}}
 @media(max-width:600px){.confirm-dialog-body{padding:20px 18px 16px}.confirm-dialog-actions{padding:12px 18px}.confirm-dialog-actions button{flex:1}}
-.invite-code{display:inline-flex;align-items:baseline;gap:8px;margin-top:8px;padding:4px 10px;border:1px solid var(--line);background:#fff9}
+.invite-code{display:flex;width:fit-content;align-items:center;gap:10px;margin:8px 0 2px;padding:6px 12px;border:1px solid var(--line);background:#fff9;white-space:nowrap}
 .invite-code span{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
-.invite-code strong{font:20px/1 var(--serif);letter-spacing:3px;color:var(--ink)}
+.invite-code strong{font:500 14px/1 var(--sans);letter-spacing:3px;color:var(--ink);font-variant-numeric:lining-nums tabular-nums}
 .created-code{display:flex;align-items:baseline;gap:14px;margin:18px 0 4px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
 .created-code strong{font:40px/1 var(--serif);letter-spacing:8px;color:var(--ink);text-transform:none}
 /* Countdown under the hero date. */
