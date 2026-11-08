@@ -91,18 +91,8 @@ async function loadInvitation(code: string) {
 }
 lookupForm.addEventListener('submit', event => { event.preventDefault(); void loadInvitation($<HTMLInputElement>('#invite-code').value); });
 if (token) { $<HTMLInputElement>('#invite-code').value = token; void loadInvitation(token); }
-let previewOnly = false;
-document.querySelector('#preview-form')?.addEventListener('click', () => {
-  previewOnly = true; lookup.hidden = true; form.hidden = false;
-  $('#household-name').textContent = 'Sample invitation';
-  $('#guest-allowance').textContent = '(up to 2)';
-  renderGuestChoices([{ id:'00000000-0000-4000-8000-000000000001',name:'Alex',attending:null },{ id:'00000000-0000-4000-8000-000000000002',name:'Sam',attending:null }]);
-  attendanceChanged();
-  setStatus('Form preview only. Responses will not be saved or emailed.');
-});
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (previewOnly) { setStatus('Form preview only. Connect Supabase and use a real invitation link to send an RSVP.'); return; }
   const button = $<HTMLButtonElement>('#submit-rsvp');
   const values = new FormData(form);
   const attending = values.get('attending') === 'yes';

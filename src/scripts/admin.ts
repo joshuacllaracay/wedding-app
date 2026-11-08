@@ -29,6 +29,25 @@ let sortKey: 'response' | 'people' | null = null;
 let sortDir: 1 | -1 = 1;
 const responseState = (invite: Invitation) => { const r = responseFor(invite); return r ? r.attending ? 'attending' : 'declined' : 'awaiting'; };
 const responseRank = { attending: 0, declined: 1, awaiting: 2 } as const;
+// Invitations ticked for bulk removal. Kept across pages, searches and filters.
+const selected = new Set<string>();
+let lastFiltered: Invitation[] = [];
+let lastVisible: Invitation[] = [];
+function updateBulkBar() {
+  const count = selected.size;
+  $('#bulk-bar').hidden = count === 0;
+  $('#bulk-count').textContent = String(count);
+  $('#bulk-label').textContent = count === 1 ? 'invitation selected' : 'invitations selected';
+  const matchingUnselected = lastFiltered.filter(invite => !selected.has(invite.id)).length;
+  const selectMatching = $<HTMLButtonElement>('#bulk-select-matching');
+  selectMatching.hidden = matchingUnselected === 0;
+  selectMatching.textContent = `Select all ${lastFiltered.length} matching`;
+  const pageBox = $<HTMLInputElement>('#select-page');
+  const onPage = lastVisible.filter(invite => selected.has(invite.id)).length;
+  pageBox.checked = lastVisible.length > 0 && onPage === lastVisible.length;
+  pageBox.indeterminate = onPage > 0 && onPage < lastVisible.length;
+  pageBox.disabled = lastVisible.length === 0;
+}
 function render() {
   const rows = $('#guest-list'); rows.replaceChildren();
   const search = $<HTMLInputElement>('#search').value.toLowerCase().trim();
@@ -46,6 +65,7 @@ function render() {
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   page = Math.min(page, pages - 1);
   const visible = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  lastFiltered = filtered; lastVisible = visible;
   $('#guest-pagination').hidden = filtered.length <= PAGE_SIZE;
   $('#guest-page').textContent = `Page ${page + 1} of ${pages}`;
   $<HTMLButtonElement>('#guest-prev').disabled = page === 0;
@@ -67,6 +87,15 @@ function render() {
   for (const invite of visible) {
     const rsvp = responseFor(invite);
     const row = element('tr');
+    row.classList.toggle('is-selected', selected.has(invite.id));
+    const pick = element('td'); pick.className = 'select-cell';
+    const box = element('input'); box.type = 'checkbox'; box.checked = selected.has(invite.id);
+    box.setAttribute('aria-label', `Select ${invite.household}`);
+    box.addEventListener('change', () => {
+      if (box.checked) selected.add(invite.id); else selected.delete(invite.id);
+      row.classList.toggle('is-selected', box.checked); updateBulkBar();
+    });
+    pick.append(box);
     const name = element('td'); name.append(element('strong', invite.household));
     if (invite.code) {
       // The code badge itself copies the code; a short "Copied" note confirms it.
@@ -145,8 +174,9 @@ function render() {
         window.dispatchEvent(new Event('guest-list-changed'));
       } catch (error) { showError(error); remove.disabled = false; }
     });
-    actions.append(copy, qr, uploadQr, edit, rotate, remove); sharing.append(actions); row.append(name, attendance, count, details, sharing); rows.append(row);
+    actions.append(copy, qr, uploadQr, edit, rotate, remove); sharing.append(actions); row.append(pick, name, attendance, count, details, sharing); rows.append(row);
   }
+  updateBulkBar();
   $('#guest-list-empty').hidden = filtered.length > 0;
   $('#guest-list-empty').textContent = filtering ? 'No guests match your search or filters.' : 'No invitations yet. Create your first one above.';
 }
@@ -171,6 +201,7 @@ async function load() {
   status.textContent = 'Loading your guest list…';
   try {
     const result = await request(); invitations = result.invitations; loaded = true;
+    for (const id of [...selected]) if (!invitations.some(invite => invite.id === id)) selected.delete(id);
     updateGuestFilter(result.photoGuests);
     $('#notification-bar').hidden = result.pendingEmails === 0;
     $('#pending-emails').textContent = String(result.pendingEmails);
@@ -229,3 +260,42 @@ $('#logout').addEventListener('click', async () => {
   } catch (error) { showError(error); }
 });
 void load();
+
+// Bulk selection and removal.
+$<HTMLInputElement>('#select-page').addEventListener('change', event => {
+  const checked = (event.target as HTMLInputElement).checked;
+  for (const invite of lastVisible) { if (checked) selected.add(invite.id); else selected.delete(invite.id); }
+  render();
+});
+$('#bulk-select-matching').addEventListener('click', () => { for (const invite of lastFiltered) selected.add(invite.id); render(); });
+$('#bulk-clear').addEventListener('click', () => { selected.clear(); render(); });
+$('#bulk-remove').addEventListener('click', async () => {
+  const chosen = invitations.filter(invite => selected.has(invite.id));
+  if (!chosen.length) return;
+  const names = chosen.slice(0, 5).map(invite => invite.household);
+  const more = chosen.length > 5 ? [`…and ${chosen.length - 5} more`] : [];
+  const photos = chosen.length === 1 ? 'Every photo these guests uploaded is deleted.' : 'Every photo their guests uploaded is deleted.';
+  if (!await confirmDialog({ tone: 'danger', title: `Delete ${chosen.length} ${chosen.length === 1 ? 'invitation' : 'invitations'}?`,
+    message: `${[...names, ...more].join(', ')} will be permanently removed. This cannot be undone.`,
+    details: ['Their invitations and RSVPs are deleted.', photos, 'Their links, QR codes and codes stop working.'],
+    confirmLabel: `Delete ${chosen.length} permanently`, cancelLabel: 'Keep them' })) return;
+  const button = $<HTMLButtonElement>('#bulk-remove'); button.disabled = true;
+  status.textContent = `Removing ${chosen.length} ${chosen.length === 1 ? 'invitation' : 'invitations'}…`;
+  try {
+    let removed = 0, photosDeleted = 0, cleanupPending = false; const failed: string[] = [];
+    // Send in batches of 100, the most the server accepts at once.
+    for (let i = 0; i < chosen.length; i += 100) {
+      const result = await request({ action: 'remove-many', ids: chosen.slice(i, i + 100).map(invite => invite.id) });
+      removed += result.removed; photosDeleted += result.photosDeleted; cleanupPending ||= result.cleanupPending; failed.push(...result.failed);
+    }
+    if (editingId && selected.has(editingId) && !failed.includes(editingId)) resetEditor();
+    selected.clear(); for (const id of failed) selected.add(id);
+    await load();
+    status.textContent = `${removed} ${removed === 1 ? 'invitation' : 'invitations'} permanently deleted.`
+      + (photosDeleted ? ` ${photosDeleted} photo${photosDeleted === 1 ? '' : 's'} deleted.` : '')
+      + (failed.length ? ` ${failed.length} could not be removed and are still selected — try again.` : '')
+      + (cleanupPending ? ' Some photo files could not be removed from storage; please try again later.' : '');
+    window.dispatchEvent(new Event('guest-list-changed'));
+  } catch (error) { showError(error); }
+  finally { button.disabled = false; }
+});

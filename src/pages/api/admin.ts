@@ -4,6 +4,30 @@ import { InputError, isUuid, textField, parseGuestNames } from '../../lib/valida
 import { deliverNotification } from '../../lib/email';
 import { MEMORY_BUCKET } from '../../lib/memories';
 export const prerender = false;
+
+const MAX_BULK_REMOVE = 100;
+// Permanently deletes one invitation (guests, RSVP, emails, photo rows) and its photo files.
+async function removeInvitation(store: ReturnType<typeof db>, id: string) {
+  const { data, error } = await store.rpc('delete_invitation', { p_id: id });
+  if (error?.code === 'PGRST202') throw new InputError('Invitation removal needs a database update. Run supabase/migrations/004_hard_delete_invitation.sql in the Supabase SQL editor, then try again.', 503);
+  if (error) throw error;
+  if (!data) return { photosDeleted: 0, cleanupPending: false };
+  const { guest_ids: guestIds, paths } = data as { guest_ids: string[]; paths: string[] };
+  // Also sweep each guest's folders so uploads without a finished DB row are removed too.
+  const bucket = store.storage.from(MEMORY_BUCKET);
+  const files = new Set(paths);
+  for (const guest of guestIds) for (const folder of ['originals', 'thumbnails']) {
+    const { data: listed } = await bucket.list(`${folder}/${guest}`, { limit: 1000 });
+    for (const file of listed ?? []) files.add(`${folder}/${guest}/${file.name}`);
+  }
+  let cleanupPending = false;
+  const all = [...files];
+  for (let i = 0; i < all.length; i += 100) {
+    const { error: removeError } = await bucket.remove(all.slice(i, i + 100));
+    if (removeError) cleanupPending = true;
+  }
+  return { photosDeleted: paths.length / 2, cleanupPending };
+}
 export const GET: APIRoute = async (context) => {
   try {
     await requireAdmin(context);
@@ -33,25 +57,26 @@ export const POST: APIRoute = async (context) => {
     const store = db();
     if (body.action === 'remove') {
       if (!isUuid(body.id)) throw new InputError('Invalid invitation.');
-      const { data, error } = await store.rpc('delete_invitation', { p_id: body.id });
-      if (error?.code === 'PGRST202') throw new InputError('Invitation removal needs a database update. Run supabase/migrations/004_hard_delete_invitation.sql in the Supabase SQL editor, then try again.', 503);
-      if (error) throw error;
-      if (!data) return json({ removed: true, photosDeleted: 0 });
-      const { guest_ids: guestIds, paths } = data as { guest_ids: string[]; paths: string[] };
-      // Also sweep each guest's folders so uploads without a finished DB row are removed too.
-      const bucket = store.storage.from(MEMORY_BUCKET);
-      const files = new Set(paths);
-      for (const guest of guestIds) for (const folder of ['originals', 'thumbnails']) {
-        const { data: listed } = await bucket.list(`${folder}/${guest}`, { limit: 1000 });
-        for (const file of listed ?? []) files.add(`${folder}/${guest}/${file.name}`);
+      const result = await removeInvitation(store, body.id);
+      return json({ removed: true, photosDeleted: result.photosDeleted, cleanupPending: result.cleanupPending });
+    }
+    if (body.action === 'remove-many') {
+      const ids = body.ids;
+      if (!Array.isArray(ids) || ids.length < 1 || ids.length > MAX_BULK_REMOVE || !ids.every(isUuid) || new Set(ids).size !== ids.length)
+        throw new InputError(`Select between 1 and ${MAX_BULK_REMOVE} invitations to remove.`);
+      let removed = 0, photosDeleted = 0, cleanupPending = false;
+      const failed: string[] = [];
+      // One at a time: each invitation is deleted atomically, so a failure never half-deletes another.
+      for (const id of ids as string[]) {
+        try {
+          const result = await removeInvitation(store, id);
+          removed++; photosDeleted += result.photosDeleted; cleanupPending ||= result.cleanupPending;
+        } catch (error) {
+          if (error instanceof InputError) throw error;
+          failed.push(id);
+        }
       }
-      let cleanupPending = false;
-      const all = [...files];
-      for (let i = 0; i < all.length; i += 100) {
-        const { error: removeError } = await bucket.remove(all.slice(i, i + 100));
-        if (removeError) cleanupPending = true;
-      }
-      return json({ removed: true, photosDeleted: paths.length / 2, cleanupPending });
+      return json({ removed, failed, photosDeleted, cleanupPending });
     }
     if (body.action === 'retry') {
       const { data, error } = await store.from('notification_outbox').select('id').neq('status', 'sent').order('created_at').limit(10);
