@@ -18,3 +18,14 @@ test('shared invitations use the public domain even from a protected admin deplo
     else Reflect.deleteProperty(globalThis, 'location');
   }
 });
+
+test('upload links open the photo page, with the guest code filled in when given', async () => {
+  const { uploadLink } = await import('../src/lib/invitation-link');
+  const general = new URL(uploadLink());
+  assert.equal(general.origin, new URL(wedding.invitationSiteUrl).origin);
+  assert.equal(general.pathname, '/upload');
+  assert.equal(general.search, '');
+  const personal = new URL(uploadLink('K7MP3Q'));
+  assert.equal(personal.pathname, '/upload');
+  assert.equal(personal.searchParams.get('code'), 'K7MP3Q');
+});

@@ -7,3 +7,9 @@ export function invitationLink(token: string): string {
   url.searchParams.set('invite', token);
   return url.href;
 }
+// Photo-sharing page. With a code, the guest's invitation opens without typing it.
+export function uploadLink(code?: string | null): string {
+  const url = new URL('/upload', wedding.invitationSiteUrl);
+  if (code) url.searchParams.set('code', code);
+  return url.href;
+}

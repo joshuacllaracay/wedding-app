@@ -102,3 +102,11 @@ Run `supabase/migrations/006_guest_confirmation_email.sql` once. After each RSVP
 Then run `supabase/migrations/007_six_character_codes.sql` once and deploy right after. Invitation codes become 6 random characters without look-alikes (e.g. `K7MP3Q`); every existing invitation gets a new code, while private links and QR codes keep working.
 
 Guest emails need `RSVP_EMAIL_FROM` to use a domain you have verified in Resend; Resend's test sender only delivers to your own account address. A guest address that fails 3 times is skipped so it doesn't block the couple's notification retries.
+
+### Photo sharing page
+
+Guests share photos at `/upload` (no longer from the invitation page). They enter their 6-character code, so the 10-photos-per-guest limit still applies. The admin **Photo sharing** setting (closed / scheduled / open) still decides when uploads are accepted.
+
+- **Upload QR** (guest list): opens `/upload?code=…` with that guest's code filled in.
+- **Photo-sharing page QR** (Photo sharing card): a general QR for `/upload`, e.g. for table cards; guests type their own code.
+- Old `/memories?invite=…` links forward to `/upload` automatically.

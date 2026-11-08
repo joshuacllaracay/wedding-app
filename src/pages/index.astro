@@ -140,7 +140,6 @@ import { wedding } from '../config/wedding';
         <p id="form-status" role="status" aria-live="polite"></p>
       </div>
     </section>
-    <section id="memories-invitation" class="memory-invite section-pad" hidden><span class="eyebrow">OUR DAY, THROUGH YOUR EYES</span><h2>A moment to<br /><em>keep forever.</em></h2><p>We would love to see the celebration through your eyes.<br />Share up to 10 photos each, privately with us.</p><a id="share-memories" class="button" href="/memories">Share your memories <span aria-hidden="true">↗︎</span></a></section>
     <footer class="site-footer"><span class="eyebrow">WE CAN’T WAIT TO CELEBRATE WITH YOU</span><p>{wedding.bride} <i>&</i> {wedding.groom}</p><span>With full hearts, and all our love.</span><a href="#invitation" class="text-link">Back to the beginning ↑</a></footer>
   </main>
   {wedding.musicUrl && <><audio id="wedding-audio" src={wedding.musicUrl} preload="none" loop></audio><button id="music-toggle" class="music-toggle" aria-label="Play music" aria-pressed="false"><span aria-hidden="true">♫</span><span id="music-label">Play music</span></button></>}

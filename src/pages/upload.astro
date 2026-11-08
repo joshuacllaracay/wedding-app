@@ -1,0 +1,35 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { wedding } from '../config/wedding';
+---
+<Layout title={`Share your photos · ${wedding.bride} & ${wedding.groom}`} privatePage>
+  <main class="memories-shell">
+    <a href="/" class="text-link">← Back to the invitation</a>
+    <header class="memories-heading"><span class="eyebrow">{wedding.bride.toUpperCase()} & {wedding.groom.toUpperCase()} / THROUGH YOUR EYES</span><h1>Little moments.<br /><em>Forever memories.</em></h1><p>Thank you for being part of our day. Share your favourite photos with us, so we can treasure every moment.</p></header>
+    <div id="memory-status" role="status" aria-live="polite" class="admin-status">Checking photo sharing…</div>
+
+    <div id="memory-closed" class="admin-card upload-ask" hidden><h2>Something to look forward to.</h2><p>Photo sharing isn’t open right now. Please come back during the celebration — this same page will be ready for your photos.</p></div>
+
+    <section id="code-panel" class="upload-panel upload-ask" hidden aria-labelledby="code-title">
+      <h2 id="code-title">Would you like to share your photos from our day?</h2>
+      <p>Enter the 6-character code from your invitation, so your photos are saved under your name. Each guest can share up to 10 photos.</p>
+      <form id="code-form">
+        <label for="upload-code">Your invitation code</label>
+        <input id="upload-code" name="code" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="e.g. K7MP3Q" />
+        <button type="submit" class="button" id="code-submit">Continue to share photos <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="form-privacy">You can find your code in your invitation or RSVP confirmation email.</p>
+    </section>
+
+    <section id="upload-panel" class="upload-panel" hidden aria-label="Share photos">
+      <p class="upload-for">Sharing for <strong id="upload-household"></strong> <button type="button" class="text-link" id="change-code">Not you? Use another code</button></p>
+      <label for="upload-guest">Whose memories are these?</label><select id="upload-guest"></select>
+      <p id="photo-allowance" class="photo-allowance"></p><p class="upload-help">Up to 10 photos per person, across all visits. JPG, PNG, or WebP · 10 MB and 40 megapixels per photo. Please export HEIC images as JPG first.</p>
+      <form id="photo-form"><label class="file-picker" for="photo-files"><span aria-hidden="true">＋</span><strong>Choose your favourite moments</strong><span>Select photos from your phone or camera</span></label><input id="photo-files" type="file" accept="image/jpeg,image/png,image/webp" multiple /><div id="upload-previews" class="upload-previews"></div><button type="submit" id="upload-submit" class="button" disabled>Share photos with the couple <span aria-hidden="true">↗︎</span></button></form>
+      <p class="form-privacy">Your photos are private to the couple. Everyone on this invitation can select either listed name. Please upload only photos you have permission to share.</p>
+      <div id="pending-uploads" class="pending-uploads" hidden><p id="pending-copy"></p><button type="button" id="finish-pending" class="text-link">Finish pending uploads ↗︎</button></div>
+      <div class="uploaded-list"><h2>Your shared moments</h2><ul id="uploaded-photos"></ul></div>
+    </section>
+  </main>
+  <script src="../scripts/upload.ts"></script>
+</Layout>

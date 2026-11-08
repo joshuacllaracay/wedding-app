@@ -4,6 +4,13 @@ import { InputError, isUuid } from '../../lib/validation';
 import { MEMORY_BUCKET, memoryError, parsePhoto } from '../../lib/memories';
 import { finishPhoto, invitationByToken } from '../../lib/memories-server';
 export const prerender = false;
+// Public: only says whether photo sharing is open right now (no invitation details).
+export const GET: APIRoute = async () => {
+  try {
+    const { data: open, error } = await db().rpc('memories_are_open'); memoryError(error);
+    return json({ open: !!open });
+  } catch (error) { return failure(error); }
+};
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await readJson(request);
@@ -12,6 +19,8 @@ export const POST: APIRoute = async ({ request }) => {
     const store = db();
     if (body.action === 'status') {
       const { data: open, error: openError } = await store.rpc('memories_are_open'); memoryError(openError);
+      // While sharing is closed (or outside the scheduled window), reveal nothing about the invitation.
+      if (!open) return json({ open: false });
       const { data: photos, error } = await store.from('memory_photos').select('id,guest_id,filename,status,expires_at').in('guest_id', invite.invitation_guests.map(g => g.id)).order('created_at');
       if (error) throw error;
       return json({ open: !!open, household: invite.household, guests: invite.invitation_guests.sort((a,b) => a.position-b.position), photos });

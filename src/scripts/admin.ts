@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import { csvCell } from '../lib/validation';
-import { invitationLink } from '../lib/invitation-link';
+import { invitationLink, uploadLink } from '../lib/invitation-link';
 import { updateGuestFilter } from './admin-memories';
 import { confirmDialog } from '../lib/confirm-dialog';
 type Rsvp = { name: string; email: string; attending: boolean; guests: number; message: string; updated_at: string };
@@ -68,7 +68,26 @@ function render() {
     const rsvp = responseFor(invite);
     const row = element('tr');
     const name = element('td'); name.append(element('strong', invite.household));
-    if (invite.code) { const code = element('span'); code.className = 'invite-code'; code.append(element('span', 'Code'), element('strong', invite.code)); name.append(code); }
+    if (invite.code) {
+      // The code badge itself copies the code; a short "Copied" note confirms it.
+      const code = element('button'); code.type = 'button'; code.className = 'invite-code';
+      code.title = 'Click to copy this code'; code.setAttribute('aria-label', `Copy code ${invite.code} for ${invite.household}`);
+      const note = element('em', 'Click to copy'); note.className = 'invite-code-note'; note.setAttribute('aria-hidden', 'true');
+      code.append(element('span', 'Code'), element('strong', invite.code), note);
+      let reset = 0;
+      code.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(invite.code ?? '');
+          note.textContent = 'Copied ✓'; code.classList.add('is-copied');
+          status.textContent = `Code ${invite.code} copied for ${invite.household}.`;
+        } catch {
+          note.textContent = 'Copy failed'; status.textContent = `Copy not allowed here. The code for ${invite.household} is ${invite.code}.`;
+        }
+        window.clearTimeout(reset);
+        reset = window.setTimeout(() => { note.textContent = 'Click to copy'; code.classList.remove('is-copied'); }, 1800);
+      });
+      name.append(code);
+    }
     name.append(element('small', `Allowance: ${invite.max_guests} ${invite.max_guests === 1 ? 'person' : 'people'}`));
     for (const guest of invite.invitation_guests.sort((a,b)=>a.position-b.position)) name.append(element('small', `${guest.name}${guest.attending===true?' · attending':guest.attending===false?' · not attending':''}`));
     const attendance = element('td'); const badge = element('span', rsvp ? rsvp.attending ? 'Attending' : 'Declined' : 'Awaiting reply'); badge.className = `badge ${rsvp ? rsvp.attending ? 'accepted' : 'declined' : ''}`; attendance.append(badge);
@@ -79,23 +98,23 @@ function render() {
       details.append(element('span', rsvp.name), element('small', rsvp.email), message, element('small', new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(rsvp.updated_at))));
     } else details.textContent = '—';
     const sharing = element('td'); const actions = element('div'); actions.className = 'row-actions';
-    const copyCode = element('button', 'Copy code');
-    copyCode.hidden = !invite.code;
-    copyCode.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(invite.code ?? ''); status.textContent = `Code ${invite.code} copied for ${invite.household}.`; }
-      catch { status.textContent = `The code for ${invite.household} is ${invite.code}.`; }
-    });
     const copy = element('button', 'Copy link');
     copy.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(linkFor(invite)); status.textContent = `Invitation link copied for ${invite.household}.`; }
       catch { showCreatedLink(linkFor(invite)); status.textContent = 'Select and copy the invitation link above.'; }
     });
+    const fileSafe = invite.household.replace(/[^a-z0-9]/gi, '-').slice(0,60);
     const qr = element('button', 'QR code ↓');
     qr.addEventListener('click', async () => {
-      try {
-        const url = await QRCode.toDataURL(linkFor(invite), { width: 900, margin: 4, color: { dark: '#493b32', light: '#ffffff' }, errorCorrectionLevel: 'M' });
-        const download = element('a'); download.href = url; download.download = `invitation-${invite.household.replace(/[^a-z0-9]/gi, '-').slice(0,60)}.png`; download.click();
-      } catch (error) { showError(error); }
+      try { await downloadQr(linkFor(invite), `invitation-${fileSafe}.png`); } catch (error) { showError(error); }
+    });
+    // Opens the photo-sharing page with this invitation's code already filled in.
+    const uploadQr = element('button', 'Upload QR ↓');
+    uploadQr.hidden = !invite.code;
+    uploadQr.title = 'QR for the photo-sharing page, with this guest’s code filled in';
+    uploadQr.addEventListener('click', async () => {
+      try { await downloadQr(uploadLink(invite.code), `photo-upload-${fileSafe}.png`); status.textContent = `Upload QR downloaded for ${invite.household}. Scanning it opens photo sharing with their code filled in.`; }
+      catch (error) { showError(error); }
     });
     const rotate = element('button', 'Replace link');
     rotate.addEventListener('click', async () => {
@@ -126,11 +145,24 @@ function render() {
         window.dispatchEvent(new Event('guest-list-changed'));
       } catch (error) { showError(error); remove.disabled = false; }
     });
-    actions.append(copyCode, copy, qr, edit, rotate, remove); sharing.append(actions); row.append(name, attendance, count, details, sharing); rows.append(row);
+    actions.append(copy, qr, uploadQr, edit, rotate, remove); sharing.append(actions); row.append(name, attendance, count, details, sharing); rows.append(row);
   }
   $('#guest-list-empty').hidden = filtered.length > 0;
   $('#guest-list-empty').textContent = filtering ? 'No guests match your search or filters.' : 'No invitations yet. Create your first one above.';
 }
+async function downloadQr(link: string, filename: string) {
+  const url = await QRCode.toDataURL(link, { width: 900, margin: 4, color: { dark: '#493b32', light: '#ffffff' }, errorCorrectionLevel: 'M' });
+  const download = element('a'); download.href = url; download.download = filename; download.click();
+}
+// One general QR for the photo-sharing page (e.g. printed on tables). Guests type their own code.
+document.querySelector('#upload-page-qr')?.addEventListener('click', async () => {
+  try { await downloadQr(uploadLink(), 'photo-upload-page.png'); status.textContent = 'Photo-sharing page QR downloaded. Guests who scan it enter their own code.'; }
+  catch (error) { showError(error); }
+});
+document.querySelector('#copy-upload-page')?.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(uploadLink()); status.textContent = 'Photo-sharing page link copied.'; }
+  catch { status.textContent = `Photo-sharing page: ${uploadLink()}`; }
+});
 function showCreatedLink(link: string, code?: string | null) {
   $('#created-invitation').hidden = false; $<HTMLInputElement>('#created-link').value = link;
   $('#created-code-row').hidden = !code; $('#created-code').textContent = code ?? '';

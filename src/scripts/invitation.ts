@@ -48,10 +48,6 @@ function renderGuestChoices(guests: {id:string;name:string;attending:boolean|nul
     label.append(input,name); container.append(label);
   }
 }
-function showMemories(open: boolean) {
-  $('#memories-invitation').hidden = !open;
-  $<HTMLAnchorElement>('#share-memories').href = `/memories?invite=${encodeURIComponent(token)}`;
-}
 let token = new URLSearchParams(window.location.search).get('invite') ?? '';
 const api = async (path: string, data: unknown) => {
   const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -77,12 +73,11 @@ async function loadInvitation(code: string) {
     try { entered = new URL(entered).searchParams.get('invite') ?? entered; } catch { /* not a URL */ }
     const data = await api('/api/invitation', { token: entered });
     token = data.token;
-    // Keep the private link in the address bar so refreshing and photo sharing keep working.
+    // Keep the private link in the address bar so refreshing keeps working.
     const url = new URL(location.href); url.searchParams.set('invite', token); history.replaceState(null, '', url);
     $('#household-name').textContent = data.household;
     $('#guest-allowance').textContent = `(up to ${data.maxGuests})`;
     renderGuestChoices(data.guests);
-    showMemories(data.memoriesOpen);
     if (data.response) {
       for (const field of ['name', 'email', 'message'] as const) (form.elements.namedItem(field) as HTMLInputElement).value = data.response[field];
       const radio = form.querySelector<HTMLInputElement>(`input[value="${data.response.attending ? 'yes' : 'no'}"]`)!;
@@ -125,10 +120,4 @@ form.addEventListener('submit', async event => {
   finally { button.disabled = false; }
 });
 $('#edit-rsvp').addEventListener('click', () => { form.hidden = false; success.hidden = true; $<HTMLInputElement>('#guest-name').focus(); });
-async function refreshMemoryAvailability() {
-  if (!token || previewOnly || document.hidden) return;
-  try { const data = await api('/api/memories',{action:'status',token}); showMemories(data.open); }
-  catch { showMemories(false); }
-}
-document.addEventListener('visibilitychange', () => { void refreshMemoryAvailability(); });
-window.setInterval(() => { void refreshMemoryAvailability(); },60_000);
+

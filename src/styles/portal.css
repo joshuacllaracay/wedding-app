@@ -7,9 +7,19 @@
 .named-guests label{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #c6b4a1;margin:0;font-size:12px;cursor:pointer}
 .named-guests input{appearance:auto;width:18px;height:18px;min-height:0;flex:0 0 auto;accent-color:var(--mocha);margin:0}
 .named-guests label:has(input:checked){background:#f8f3ec;border-color:var(--mocha)}
-.memory-invite{text-align:center;background:var(--ivory);border-top:1px solid var(--line)}
-.memory-invite h2{margin:20px 0}.memory-invite>p{font-size:12px;color:var(--muted)}
-.memory-invite .button{max-width:320px;margin:25px auto 0}
+.upload-page-actions{display:flex;flex-wrap:wrap;gap:12px 24px;margin-top:16px}
+.memory-settings .upload-page-hint{font-size:11px;margin-top:12px}
+/* /upload: the code step and who the photos are for. */
+.upload-ask{text-align:center}
+.upload-ask h2{font:32px/1.15 var(--serif);letter-spacing:-.5px;margin-bottom:12px}
+.upload-ask>p{font-size:12px;color:var(--muted);max-width:430px;margin:0 auto}
+#code-form{max-width:340px;margin:22px auto 0;text-align:left}
+#upload-code{text-transform:uppercase;letter-spacing:4px;font-size:16px;text-align:center}
+#upload-code::placeholder{letter-spacing:2px;text-transform:none;font-size:12px}
+#code-form .button{width:100%;margin-top:16px;font-size:11px}
+.upload-for{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;font-size:12px;color:var(--muted);padding-bottom:16px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.upload-for strong{font:24px var(--serif);color:var(--ink)}
+.upload-for .text-link{font-size:10px;padding-bottom:3px}
 .memory-settings{margin-top:70px;display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;background:#ede6de55}
 .memory-settings h2{margin:15px 0}.memory-settings p{font-size:12px;color:var(--muted);max-width:380px}
 .memory-settings form>label:first-child{margin-top:0}.memory-settings .button{margin-top:22px;width:100%}
@@ -92,7 +102,12 @@
 .confirm-dialog[data-tone=danger] .confirm-dialog-confirm:hover{background:#6f2a26}
 @media(prefers-reduced-motion:reduce){.confirm-dialog,.confirm-dialog::backdrop{transition:none}}
 @media(max-width:600px){.confirm-dialog-body{padding:20px 18px 16px}.confirm-dialog-actions{padding:12px 18px}.confirm-dialog-actions button{flex:1}}
-.invite-code{display:flex;width:fit-content;align-items:center;gap:10px;margin:8px 0 2px;padding:6px 12px;border:1px solid var(--line);background:#fff9;white-space:nowrap}
+.invite-code{display:flex;width:fit-content;align-items:center;gap:10px;margin:8px 0 2px;padding:6px 12px;border:1px solid var(--line);background:#fff9;white-space:nowrap;cursor:copy;color:inherit;font:inherit;text-align:left;transition:border-color .2s,background .2s}
+.invite-code:hover{border-color:var(--taupe);background:#fff}
+.invite-code.is-copied{border-color:#9bb08c;background:#eef2e8}
+.invite-code-note{font-style:normal;font-size:9px;letter-spacing:.5px;color:var(--muted);opacity:0;transition:opacity .2s;min-width:62px}
+.invite-code:hover .invite-code-note,.invite-code:focus-visible .invite-code-note,.invite-code.is-copied .invite-code-note{opacity:1}
+.invite-code.is-copied .invite-code-note{color:#4f6a42}
 .invite-code span{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
 .invite-code strong{font:500 14px/1 var(--sans);letter-spacing:3px;color:var(--ink);font-variant-numeric:lining-nums tabular-nums}
 .created-code{display:flex;align-items:baseline;gap:14px;margin:18px 0 4px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
