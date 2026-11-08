@@ -10,7 +10,7 @@ test('shared invitations use the public domain even from a protected admin deplo
     const token = '26b39d80-25a7-4618-9d0d-21c586a2da25';
     const url = new URL(invitationLink(token));
     assert.equal(url.origin, new URL(wedding.invitationSiteUrl).origin);
-    assert.equal(url.origin, 'https://wedding-app-ochre-six.vercel.app');
+    assert.equal(url.origin, 'https://www.chykaandemmanuel.com');
     assert.equal(url.pathname, '/');
     assert.equal(url.searchParams.get('invite'), token);
   } finally {

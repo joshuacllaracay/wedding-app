@@ -1,7 +1,7 @@
 // Replace these placeholders before sharing the invitation.
 export const wedding = {
   // Public guest-facing domain. Never use an admin/preview deployment URL for sharing.
-  invitationSiteUrl: 'https://wedding-app-ochre-six.vercel.app',
+  invitationSiteUrl: 'https://www.chykaandemmanuel.com',
   bride: 'Chyka',
   groom: 'Emmanuel',
   brideFullName: 'Chyka Claracay',
