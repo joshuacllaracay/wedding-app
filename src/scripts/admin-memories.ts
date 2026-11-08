@@ -1,4 +1,6 @@
+import QRCode from 'qrcode';
 import { confirmDialog } from '../lib/confirm-dialog';
+import { uploadLink } from '../lib/invitation-link';
 type Photo={id:string;guest_id:string;filename:string;byte_size:number;completed_at:string;thumbnailUrl:string|null;invitation_guests:{name:string}|{name:string}[]};
 type Download={id:string;filename:string;byteSize:number;url:string};
 const $=<T extends HTMLElement>(s:string)=>document.querySelector<T>(s)!;
@@ -14,7 +16,7 @@ async function api(data?:unknown) {
   if(response.status===401){location.assign('/login');throw new Error('Please sign in again.');}
   const result=await response.json();if(!response.ok)throw new Error(result.error);return result;
 }
-export function updateGuestFilter(guests:{id:string;name:string}[]) {
+function updateGuestFilter(guests:{id:string;name:string}[]) {
   const previous=filter.value;filter.replaceChildren(new Option('Everyone',''),...guests.sort((a,b)=>a.name.localeCompare(b.name)).map(g=>new Option(g.name,g.id)));
   filter.value=previous;
 }
@@ -72,16 +74,36 @@ $('#memory-settings-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$<HTMLButtonElement>('#memory-settings-form button');button.disabled=true;
   try{const start=$<HTMLInputElement>('#memory-opens').value,end=$<HTMLInputElement>('#memory-closes').value;
     await api({action:'settings',mode:mode.value,opensAt:start?`${start}:00+08:00`:null,closesAt:end?`${end}:00+08:00`:null});
-    status.textContent='Photo-sharing settings saved. Invitations will show the button while sharing is open.';
+    status.textContent='Photo-sharing settings saved. Guests can upload on the photo-sharing page while sharing is open.';
   }catch(error){tell(error);}finally{button.disabled=false;}
 });
 $('#cleanup-photos').addEventListener('click',async()=>{
   const button=$<HTMLButtonElement>('#cleanup-photos');button.disabled=true;
   try{const result=await api({action:'cleanup'});await load();status.textContent=`${result.released} expired upload slots released. Completed memories are kept.`;}catch(error){tell(error);}finally{button.disabled=false;}
 });
-filter.addEventListener('change',()=>{page=0;selected.clear();void load();});
+filter.addEventListener('change',()=>{page=0;selected.clear();// Names for the "Photos from" filter.
+async function loadGuests() {
+  try {
+    const response = await fetch('/api/admin');
+    if (response.status === 401) { location.assign('/login'); return; }
+    const data = await response.json(); if (response.ok) updateGuestFilter(data.photoGuests ?? []);
+  } catch { /* the filter keeps "Everyone" */ }
+}
+// One general QR for the photo-sharing page (e.g. printed on tables). Guests type their own code.
+document.querySelector('#upload-page-qr')?.addEventListener('click', async () => {
+  try {
+    const url = await QRCode.toDataURL(uploadLink(), { width: 900, margin: 4, color: { dark: '#493b32', light: '#ffffff' }, errorCorrectionLevel: 'M' });
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'photo-upload-page.png'; anchor.click();
+    status.textContent = 'Photo-sharing page QR downloaded. Guests who scan it enter their own code.';
+  } catch (error) { tell(error); }
+});
+document.querySelector('#copy-upload-page')?.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(uploadLink()); status.textContent = 'Photo-sharing page link copied.'; }
+  catch { status.textContent = `Photo-sharing page: ${uploadLink()}`; }
+});
+void loadGuests();
+void load();});
 $('#gallery-refresh').addEventListener('click',()=>{void load();});
-window.addEventListener('guest-list-changed',()=>{selected.clear();updateSelection();void load();});
 $('#gallery-prev').addEventListener('click',()=>{if(page>0){page--;void load();}});
 $('#gallery-next').addEventListener('click',()=>{page++;void load();});
 $('#close-photo-viewer').addEventListener('click',()=>$<HTMLDialogElement>('#photo-viewer').close());

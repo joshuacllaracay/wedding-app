@@ -1,7 +1,6 @@
 import QRCode from 'qrcode';
 import { csvCell } from '../lib/validation';
 import { invitationLink, uploadLink } from '../lib/invitation-link';
-import { updateGuestFilter } from './admin-memories';
 import { confirmDialog } from '../lib/confirm-dialog';
 type Rsvp = { name: string; email: string; attending: boolean; guests: number; message: string; updated_at: string };
 type Invitation = { id: string; token: string; code?: string | null; household: string; max_guests: number; created_at: string; invitation_guests:{id:string;name:string;position:number;attending:boolean|null}[]; responses: Rsvp | Rsvp[] | null };
@@ -171,7 +170,6 @@ function render() {
         await load();
         const photos = result.photosDeleted ? ` ${result.photosDeleted} photo${result.photosDeleted === 1 ? '' : 's'} deleted.` : '';
         status.textContent = `Invitation for ${invite.household} permanently deleted.${photos}${result.cleanupPending ? ' Some photo files could not be removed from storage; please try again later.' : ''}`;
-        window.dispatchEvent(new Event('guest-list-changed'));
       } catch (error) { showError(error); remove.disabled = false; }
     });
     actions.append(copy, qr, uploadQr, edit, rotate, remove); sharing.append(actions); row.append(pick, name, attendance, count, details, sharing); rows.append(row);
@@ -184,15 +182,6 @@ async function downloadQr(link: string, filename: string) {
   const url = await QRCode.toDataURL(link, { width: 900, margin: 4, color: { dark: '#493b32', light: '#ffffff' }, errorCorrectionLevel: 'M' });
   const download = element('a'); download.href = url; download.download = filename; download.click();
 }
-// One general QR for the photo-sharing page (e.g. printed on tables). Guests type their own code.
-document.querySelector('#upload-page-qr')?.addEventListener('click', async () => {
-  try { await downloadQr(uploadLink(), 'photo-upload-page.png'); status.textContent = 'Photo-sharing page QR downloaded. Guests who scan it enter their own code.'; }
-  catch (error) { showError(error); }
-});
-document.querySelector('#copy-upload-page')?.addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(uploadLink()); status.textContent = 'Photo-sharing page link copied.'; }
-  catch { status.textContent = `Photo-sharing page: ${uploadLink()}`; }
-});
 function showCreatedLink(link: string, code?: string | null) {
   $('#created-invitation').hidden = false; $<HTMLInputElement>('#created-link').value = link;
   $('#created-code-row').hidden = !code; $('#created-code').textContent = code ?? '';
@@ -202,7 +191,6 @@ async function load() {
   try {
     const result = await request(); invitations = result.invitations; loaded = true;
     for (const id of [...selected]) if (!invitations.some(invite => invite.id === id)) selected.delete(id);
-    updateGuestFilter(result.photoGuests);
     $('#notification-bar').hidden = result.pendingEmails === 0;
     $('#pending-emails').textContent = String(result.pendingEmails);
     render(); status.textContent = '';
@@ -252,13 +240,6 @@ $('#export').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
   const download = element('a'); download.href = url; download.download = 'chyka-emmanuel-guest-list.csv'; download.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
-$('#logout').addEventListener('click', async () => {
-  try {
-    const response = await fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    if (!response.ok) throw new Error('Unable to sign out. Please try again.');
-    location.assign('/login');
-  } catch (error) { showError(error); }
-});
 void load();
 
 // Bulk selection and removal.
@@ -295,7 +276,6 @@ $('#bulk-remove').addEventListener('click', async () => {
       + (photosDeleted ? ` ${photosDeleted} photo${photosDeleted === 1 ? '' : 's'} deleted.` : '')
       + (failed.length ? ` ${failed.length} could not be removed and are still selected — try again.` : '')
       + (cleanupPending ? ' Some photo files could not be removed from storage; please try again later.' : '');
-    window.dispatchEvent(new Event('guest-list-changed'));
   } catch (error) { showError(error); }
   finally { button.disabled = false; }
 });

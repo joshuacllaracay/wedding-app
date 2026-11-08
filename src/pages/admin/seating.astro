@@ -1,0 +1,49 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminHeader from '../../components/AdminHeader.astro';
+import { requireAdmin } from '../../lib/server';
+export const prerender = false;
+try { await requireAdmin(Astro); } catch { return Astro.redirect('/login'); }
+---
+<Layout title="Seating · Our wedding portal" privatePage>
+  <main class="admin-shell seating-shell">
+    <AdminHeader active="seating" title="Everyone in their place." lead="Plan your tables with the guests who confirmed they’re coming. Tap people to select them, then tap a table — or drag them on a computer. Click a table’s name or seat number to change it." />
+    <div id="seating-status" role="status" aria-live="polite" class="admin-status"></div>
+
+    <div class="seating-summary" id="seating-summary" hidden>
+      <p><strong id="seated-count">0</strong> of <span id="people-count">0</span> seated · <span id="table-count">0</span> tables · <span id="seat-count">0</span> seats</p>
+      <div class="admin-actions"><button type="button" class="text-link" id="seating-refresh">Refresh</button><button type="button" class="text-link" id="seating-export">Export CSV ↓</button></div>
+    </div>
+
+    <div class="seating-layout" id="seating-layout" hidden>
+      <aside class="seating-pool" aria-labelledby="pool-title">
+        <div class="pool-head">
+          <h2 id="pool-title">Not yet seated <span id="pool-count" class="pool-count">0</span></h2>
+          <label class="sr-only" for="pool-search">Search people</label>
+          <input type="search" id="pool-search" placeholder="Search names…" />
+        </div>
+        <div id="pool-list" class="pool-list" data-drop="pool"></div>
+        <form id="add-name-form" class="add-name">
+          <label for="add-name">Add a name <span>(not on the guest list)</span></label>
+          <div><input id="add-name" maxlength="120" placeholder="e.g. Officiant, Lola Ana" /><button type="submit" class="button">Add</button></div>
+        </form>
+      </aside>
+
+      <section class="seating-tables" aria-labelledby="tables-title">
+        <div class="tables-head">
+          <h2 id="tables-title">Tables</h2>
+          <form id="add-table-form" class="add-table">
+            <label class="sr-only" for="table-name">Table name</label><input id="table-name" maxlength="60" placeholder="Table name" />
+            <label class="sr-only" for="table-seats">Seats</label><input id="table-seats" type="number" min="1" max="40" value="8" inputmode="numeric" />
+            <button type="submit" class="button">+ Add table</button>
+          </form>
+        </div>
+        <p class="selection-hint" id="selection-hint" hidden><strong id="selection-count">0</strong> selected — tap a table to seat them. <button type="button" class="text-link" id="clear-selection">Clear</button></p>
+        <div id="table-grid" class="table-grid"></div>
+        <p id="tables-empty" class="empty-state" hidden>No tables yet. Add your first table above.</p>
+      </section>
+    </div>
+
+  </main>
+  <script src="../../scripts/admin-seating.ts"></script>
+</Layout>

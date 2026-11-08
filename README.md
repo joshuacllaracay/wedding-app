@@ -110,3 +110,13 @@ Guests share photos at `/upload` (no longer from the invitation page). They ente
 - **Upload QR** (guest list): opens `/upload?code=…` with that guest's code filled in.
 - **Photo-sharing page QR** (Photo sharing card): a general QR for `/upload`, e.g. for table cards; guests type their own code.
 - Old `/memories?invite=…` links forward to `/upload` automatically.
+
+### Seating planner
+
+Run `supabase/migrations/008_seating.sql` once. Then open **Seating** in the admin (`/admin/seating`).
+
+- Guests who confirmed they're attending appear under **Not yet seated**, grouped by invitation.
+- Tap people (or an invitation name to pick everyone on it), then tap a table. On a computer you can also drag and drop. Tap × to move someone back.
+- **Add a name** for people not on the guest list (kids, plus-ones, vendors).
+- Tables can't go over their seats. Seated guests who later decline are flagged "not attending".
+- **Export CSV** downloads the plan for printing or the venue.

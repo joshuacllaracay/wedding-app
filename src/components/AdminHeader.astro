@@ -1,0 +1,28 @@
+---
+// Shared header for the admin pages, with the Guests | Photos | Seating switcher.
+import { wedding } from '../config/wedding';
+interface Props { active: 'guests' | 'photos' | 'seating'; title: string; lead: string }
+const { active, title, lead } = Astro.props;
+const tabs = [
+  { id: 'guests', label: 'Guests', href: '/admin' },
+  { id: 'photos', label: 'Photos', href: '/admin/photos' },
+  { id: 'seating', label: 'Seating', href: '/admin/seating' },
+] as const;
+---
+<header class="admin-header"><div><span class="eyebrow">{wedding.bride.toUpperCase()} & {wedding.groom.toUpperCase()} / YOUR CELEBRATION</span><h1>{title}</h1></div><div class="admin-actions"><a class="text-link" href="/" target="_blank" rel="noopener">View invitation ↗︎</a><button class="text-link" id="logout">Sign out</button></div></header>
+<nav class="admin-tabs" aria-label="Wedding portal">
+  {tabs.map(tab => <a href={tab.href} class:list={['admin-tab', { 'is-active': tab.id === active }]} aria-current={tab.id === active ? 'page' : undefined}>{tab.label}</a>)}
+</nav>
+<p class="admin-lead">{lead}</p>
+<script>
+  document.querySelector('#logout')?.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      if (!response.ok) throw new Error();
+      location.assign('/login');
+    } catch {
+      const status = document.querySelector('[role="status"]');
+      if (status) status.textContent = 'Unable to sign out. Please try again.';
+    }
+  });
+</script>

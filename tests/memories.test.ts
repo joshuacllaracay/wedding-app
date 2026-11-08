@@ -21,6 +21,7 @@ before(async()=>{
   await pg.exec(await readFile(new URL('../supabase/migrations/005_invitation_codes.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../supabase/migrations/006_guest_confirmation_email.sql',import.meta.url),'utf8'));
   await pg.exec(await readFile(new URL('../supabase/migrations/007_six_character_codes.sql',import.meta.url),'utf8'));
+  await pg.exec(await readFile(new URL('../supabase/migrations/008_seating.sql',import.meta.url),'utf8'));
   const created=await pg.query<{result:{id:string;token:string}}>("select public.create_named_invitation('Alex & Sam',array['Alex','Sam']) as result");token=created.rows[0].result.token;
   const guests=await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[created.rows[0].result.id]);[guest1,guest2]=guests.rows.map(g=>g.id);
   const outsider=await pg.query<{result:{id:string}}>("select public.create_named_invitation('Jamie',array['Jamie']) as result");
@@ -204,4 +205,35 @@ test('6-character migration replaces every code and rejects 4-digit codes',async
   assert.ok(codes.length>0);
   for(const c of codes) assert.match(c,/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
   await assert.rejects(pg.query("update public.invitations set code='4821' where code=$1",[codes[0]]),/invitations_code_check/);
+});
+
+test('seating: tables enforce seats, people can be moved, unseated, and added by name',async()=>{
+  const inv=(await pg.query<{result:{id:string}}>("select public.create_named_invitation('Seat pair',array['Ana','Ben']) as result")).rows[0].result;
+  const [ana,ben]=(await pg.query<{id:string}>('select id from public.invitation_guests where invitation_id=$1 order by position',[inv.id])).rows.map(r=>r.id);
+  const table=(await pg.query<{id:string}>("insert into public.seating_tables(name,capacity) values('Table 1',2) returning id")).rows[0].id;
+  const small=(await pg.query<{id:string}>("insert into public.seating_tables(name,capacity) values('Table 2',1) returning id")).rows[0].id;
+  const extra=(await pg.query<{id:string}>("insert into public.seating_people(name) values('Officiant') returning id")).rows[0].id;
+  // Seat a couple together.
+  await pg.query('select public.seat_people($1,$2,$3)',[table,[],[ana,ben]]);
+  assert.equal((await pg.query('select 1 from public.seating_people where table_id=$1',[table])).rows.length,2);
+  // A full table refuses one more.
+  await assert.rejects(pg.query('select public.seat_people($1,$2,$3)',[table,[extra],[]]),/TABLE_FULL/);
+  // Two people never fit a 1-seat table, but one does; moving someone frees their old seat.
+  await assert.rejects(pg.query('select public.seat_people($1,$2,$3)',[small,[],[ana,ben]]),/TABLE_FULL/);
+  await pg.query('select public.seat_people($1,$2,$3)',[small,[],[ana]]);
+  await pg.query('select public.seat_people($1,$2,$3)',[table,[extra],[]]);
+  assert.equal((await pg.query<{table_id:string}>('select table_id from public.seating_people where id=$1',[extra])).rows[0].table_id,table);
+  // Unseat.
+  await pg.query('select public.seat_people(null,$1,$2)',[[extra],[ana]]);
+  assert.equal((await pg.query('select 1 from public.seating_people where table_id is not null and (id=$1 or guest_id=$2)',[extra,ana])).rows.length,0);
+  // A row is either a guest or a typed name, never both or neither.
+  await assert.rejects(pg.query("insert into public.seating_people(guest_id,name) values($1,'x')",[ben]),/check/);
+  await assert.rejects(pg.query('insert into public.seating_people(table_id) values($1)',[table]),/check/);
+  // Deleting a table sends its people back to not seated; deleting an invitation removes its guests from the plan.
+  await pg.query('delete from public.seating_tables where id=$1',[table]);
+  assert.equal((await pg.query<{table_id:string|null}>('select table_id from public.seating_people where guest_id=$1',[ben])).rows[0].table_id,null);
+  await pg.query('select public.delete_invitation($1)',[inv.id]);
+  assert.equal((await pg.query('select 1 from public.seating_people where guest_id = any($1)',[[ana,ben]])).rows.length,0);
+  for(const role of ['anon','authenticated'])
+    assert.equal((await pg.query<{allowed:boolean}>("select has_function_privilege($1,'public.seat_people(uuid,uuid[],uuid[])','EXECUTE') as allowed",[role])).rows[0].allowed,false);
 });
