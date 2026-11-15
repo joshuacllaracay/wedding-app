@@ -243,8 +243,23 @@ const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', 
       </div>
     </section>
 
-    <section id="rsvp" class="rsvp section-pad" aria-labelledby="rsvp-title">
-      <div class="rsvp-intro"><span class="eyebrow">02 / SAVE YOUR SEAT</span><h2 id="rsvp-title">Will you<br /><em>join us?</em></h2><p>Your presence would mean the world.<br />Please let us know if you can celebrate with us.</p><p class="deadline">KINDLY RESPOND ON OR BEFORE<br /><span>{wedding.rsvpDeadline}</span></p><Orchid id="orchid-rsvp" class="rsvp-orchid" /></div>
+    <section id="rsvp" class="rsvp rsvp-stack section-pad" aria-labelledby="rsvp-title">
+      <div class="rsvp-intro">
+        <div class="rsvp-top">
+          <div class="rsvp-heading"><span class="eyebrow">RSVP <i aria-hidden="true"></i></span><h2 id="rsvp-title">Will you<br /><em>join us?</em></h2></div>
+          <!-- Two round frames; the couple's photos slide through them to the right (rsvp-photos.ts). -->
+          <div class="rsvp-photos" role="img" aria-label={`Photos of ${wedding.heroNames[0]} and ${wedding.heroNames[1]}`}>
+            {[0, 2].map(start => (
+              <div class="photo-ring" data-photos={JSON.stringify(wedding.couplePhotos)} data-start={start}>
+                <div class="photo-track"><img src={wedding.couplePhotos[start % wedding.couplePhotos.length]} width="400" height="400" alt="" loading="lazy" decoding="async" /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p class="rsvp-lead">Your presence would mean the world.<br />Please let us know if you can celebrate with us.</p>
+        <p class="deadline">KINDLY RESPOND ON OR BEFORE<br /><span>{wedding.rsvpDeadline}</span></p>
+      </div>
+      <Orchid id="orchid-rsvp" class="rsvp-orchid" />
       <div class="rsvp-panel">
         <div id="invitation-lookup"><h3>A place just for you</h3><p>Open the personal link {wedding.bride} &amp; {wedding.groom} sent you, or enter your 6-character invitation code below.</p><form id="lookup-form"><label for="invite-code">Invitation code</label><input id="invite-code" name="token" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. K7MP3Q" /><button class="button" type="submit">Find my invitation <span aria-hidden="true">→</span></button></form></div>
         <form id="rsvp-form" hidden>
@@ -269,4 +284,5 @@ const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', 
   <script src="../scripts/film.ts"></script>
   <script src="../scripts/venue-sketch.ts"></script>
   <script src="../scripts/butterflies.ts"></script>
+  <script src="../scripts/rsvp-photos.ts"></script>
 </Layout>

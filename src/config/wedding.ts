@@ -17,6 +17,8 @@ export const wedding = {
   heroVideoLoop: { start: 10, end: 33 },
   // Names on the opening video, e.g. "Emman & Chyka are getting married".
   heroNames: ['Emman', 'Chyka'],
+  // Photos that slide through the two circles in the RSVP section (in /public).
+  couplePhotos: ['/couple/photo-1.webp', '/couple/photo-2.webp', '/couple/photo-3.webp', '/couple/photo-4.webp'],
   // Order of the day, shown in "The Program" section. icon: assemble | ceremony | cocktail | reception
   program: [
     { time: '3:00', period: 'PM', title: 'Assemble', icon: 'assemble' },
