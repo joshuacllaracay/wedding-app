@@ -1,0 +1,29 @@
+---
+// Ivory satin swags hanging across the top of a section.
+interface Props { id: string; class?: string; }
+const { id, class: className = '' } = Astro.props;
+const satin = `${id}-satin`, satinBack = `${id}-satin-back`, rod = `${id}-rod`;
+const swag = (x: number, w: number, dip: number, thick: number) =>
+  `M${x} 0C${x + w * 0.28} ${dip} ${x + w * 0.72} ${dip} ${x + w} 0L${x + w} ${thick}C${x + w * 0.72} ${dip + thick * 1.6} ${x + w * 0.28} ${dip + thick * 1.6} ${x} ${thick}Z`;
+const folds = (x: number, w: number, dip: number, thick: number) =>
+  [0.25, 0.5, 0.75].map(f => `M${x + w * 0.04} ${thick * f}C${x + w * 0.3} ${dip + thick * f * 1.3} ${x + w * 0.7} ${dip + thick * f * 1.3} ${x + w * 0.96} ${thick * f}`).join('');
+const back = [-200, 200, 600, 1000].map(x => [x, 400, 118, 26] as const);
+const front = [0, 400, 800].map(x => [x, 400, 96, 30] as const);
+---
+<svg class={`drape ${className}`} viewBox="0 0 1200 170" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id={satin} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf2" /><stop offset=".35" stop-color="#f3e7d4" /><stop offset=".6" stop-color="#ddc6a6" /><stop offset=".8" stop-color="#f6ecdd" /><stop offset="1" stop-color="#e3cfb2" /></linearGradient>
+    <linearGradient id={satinBack} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eadac3" /><stop offset=".5" stop-color="#cdb18e" /><stop offset="1" stop-color="#e2cfb4" /></linearGradient>
+    <linearGradient id={rod} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf2" /><stop offset=".5" stop-color="#e8d6bd" /><stop offset="1" stop-color="#c9ab88" /></linearGradient>
+  </defs>
+  <g fill={`url(#${satinBack})`}>{back.map(([x, w, d, t]) => <path d={swag(x, w, d, t)} />)}</g>
+  <g fill="none" stroke="#f7ecdc" stroke-width="1.4" opacity=".55">{back.map(([x, w, d, t]) => <path d={folds(x, w, d, t)} />)}</g>
+  <g fill={`url(#${satin})`}>{front.map(([x, w, d, t]) => <path d={swag(x, w, d, t)} />)}</g>
+  <g fill="none" stroke="#fffdf8" stroke-width="1.6" opacity=".8">{front.map(([x, w, d, t]) => <path d={folds(x, w, d, t)} />)}</g>
+  <g fill="none" stroke="#c9ab88" stroke-width="1" opacity=".55">{front.map(([x, w, d, t]) => <path d={folds(x, w, d + 6, t)} />)}</g>
+  <rect x="0" y="0" width="1200" height="16" fill={`url(#${rod})`} />
+  <g fill={`url(#${rod})`}>{[0, 400, 800, 1200].map(x => <ellipse cx={x} cy="14" rx="22" ry="16" />)}</g>
+</svg>
+<style>
+  .drape { display: block; width: 100%; pointer-events: none; filter: drop-shadow(0 8px 10px #2e1f172e); }
+</style>

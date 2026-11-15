@@ -11,14 +11,18 @@ export const wedding = {
   time: 'Ceremony at 3:30 in the afternoon',
   // Used by the countdown. Include the timezone (Singapore / Philippines = +08:00).
   ceremonyStartsAt: '2027-02-06T15:30:00+08:00',
-  // Teaser video in /public. Set to '' to hide the section.
+  // Background video of the opening section (in /public). Set to '' to show a plain dark background.
   teaserVideoUrl: '/video/teaser.mp4',
-  // Order of the day, shown in "The Program" section.
+  // Only this part of the video loops behind the names (skips the film's own title and end cards).
+  heroVideoLoop: { start: 10, end: 33 },
+  // Names on the opening video, e.g. "Emman & Chyka are getting married".
+  heroNames: ['Emman', 'Chyka'],
+  // Order of the day, shown in "The Program" section. icon: assemble | ceremony | cocktail | reception
   program: [
-    { time: '3:00', period: 'PM', title: 'Assemble' },
-    { time: '3:30', period: 'PM', title: 'Ceremony' },
-    { time: '5:00', period: 'PM', title: 'Cocktail Hour' },
-    { time: '6:00', period: 'PM', title: 'Reception' },
+    { time: '3:00', period: 'PM', title: 'Assemble', icon: 'assemble' },
+    { time: '3:30', period: 'PM', title: 'Ceremony', icon: 'ceremony' },
+    { time: '5:00', period: 'PM', title: 'Cocktail Hour', icon: 'cocktail' },
+    { time: '6:00', period: 'PM', title: 'Reception', icon: 'reception' },
   ],
   venue: 'Montebello Hotel, Cebu',
   address: 'Montebello Drive, Brgy. Apas, Gov. M. Cuenco Ave, Cebu City',
@@ -29,13 +33,22 @@ export const wedding = {
   // Optional ISO instant, including timezone, e.g. 2027-01-06T23:59:59+08:00.
   rsvpClosesAt: '',
   dressCode: 'Formal attire',
-  // Attire guide carousel (images in /public/attire). The title shows above each image.
-  attireGuides: [
-    { title: 'Guests', image: '/attire/guests.webp', width: 1666, height: 752, alt: 'Attire guide for guests: long gowns in soft taupe, cognac and apricot; barong or a beige suit with black trousers. Colour palette: soft taupe, sand beige, camel, caramel, apricot, cappuccino, cognac and soft terracotta.' },
-    { title: 'Principal Sponsors', image: '/attire/principal-sponsors.webp', width: 1730, height: 706, alt: 'Attire guide for principal sponsors: women in shades of champagne gold to light gold; men in a beige barong with black trousers.' },
-    { title: 'Secondary Sponsors', image: '/attire/secondary-sponsors.webp', width: 1658, height: 674, alt: 'Attire guide for secondary sponsors: women and men in light chocolate and light mocha.' },
+  // Dress code section. Edit the wording freely.
+  dressCodeIntro: 'We kindly invite our guests to dress in formal attire and adhere to the colors as we celebrate this special occasion.',
+  dressGentlemen: 'Long-sleeved barong in light brown, caramel or sand beige, paired with dark brown slacks and dress shoes.',
+  dressLadies: 'Long gowns in elegant silhouettes and soft, warm tones. Fabrics like chiffon, satin, tulle or crepe are highly encouraged. Kindly leave white and ivory for the bride.',
+  // Colours sampled from the attire guides.
+  guestPalette: [
+    { name: 'Soft Taupe', hex: '#ccb1a1' }, { name: 'Taupe', hex: '#be9678' }, { name: 'Sand Beige', hex: '#efceaa' },
+    { name: 'Camel', hex: '#e7b588' }, { name: 'Apricot', hex: '#f7ae84' }, { name: 'Caramel', hex: '#dc9f6f' },
+    { name: 'Light Brown', hex: '#c68351' }, { name: 'Cappuccino', hex: '#b77855' }, { name: 'Biscoff', hex: '#b9662c' },
+    { name: 'Toffee', hex: '#945120' },
+  ],
+  guestAttire: [
+    { label: 'For ladies', image: '/attire/guests-women.webp', width: 528, height: 394, alt: 'Attire for lady guests: long gowns in soft taupe, taupe, camel, caramel, apricot, cappuccino, light brown, biscoff and toffee.' },
+    { label: 'For gentlemen', image: '/attire/guests-men.webp', width: 516, height: 412, alt: 'Attire for gentlemen guests: long-sleeved barong in light brown, caramel or sand beige with dark brown trousers.' },
   ],
   dressNote: 'We would love to see you in warm neutrals, champagne, taupe, and soft brown. Please leave white and ivory for the bride.',
   // Original synthesized placeholder. Replace with your chosen licensed track.
-  musicUrl: '/music/demo.wav',
+  musicUrl: '/music/golden-hour-violin.mp3',
 };
