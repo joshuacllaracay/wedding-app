@@ -3,6 +3,7 @@ export {};
 // Without JavaScript (or with reduced motion) the finished drawing is simply shown.
 const art = document.querySelector<HTMLElement>('#venue-art');
 const replay = document.querySelector<HTMLButtonElement>('#venue-replay');
+// Without the drawing animation there's nothing to replay; the button only shows (in its reserved space) after a drawing.
 const DRAW_MS = 3600; // last strokes start ~2.7s and take 0.9s
 
 if (art && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -11,7 +12,7 @@ if (art && 'IntersectionObserver' in window && !window.matchMedia('(prefers-redu
     art.classList.remove('sketch-drawing');
     void art.getBoundingClientRect(); // restart the CSS animations
     art.classList.add('sketch-drawing');
-    if (replay) { replay.disabled = true; window.clearTimeout(timer); timer = window.setTimeout(() => { replay.hidden = false; replay.disabled = false; }, DRAW_MS); }
+    if (replay) { replay.disabled = true; window.clearTimeout(timer); timer = window.setTimeout(() => { replay.classList.add('is-ready'); replay.disabled = false; }, DRAW_MS); }
   };
   art.classList.add('sketch-pending');
   const observer = new IntersectionObserver(entries => {

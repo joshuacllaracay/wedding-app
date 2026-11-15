@@ -1,62 +1,188 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Botanical from '../components/Botanical.astro';
 import VenueSketch from '../components/VenueSketch.astro';
+import ProgramIcon from '../components/ProgramIcon.astro';
+import Orchid from '../components/Orchid.astro';
+import Lanterns from '../components/Lanterns.astro';
+import Drape from '../components/Drape.astro';
 import { wedding } from '../config/wedding';
+const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' });
 ---
 <Layout title={`${wedding.bride} & ${wedding.groom} · A wedding invitation`}>
   <a class="skip-link" href="#invitation">Skip to invitation</a>
-  <div class="envelope-screen" id="envelope-screen">
-    <span class="eyebrow envelope-heading">A LITTLE SOMETHING, JUST FOR YOU</span>
-    <Botanical class="envelope-botanical" />
-    <button class="envelope-button" id="open-envelope" aria-label="Open your wedding invitation">
-      <span class="envelope-letter"><span class="eyebrow">YOU ARE INVITED</span><span class="letter-names">{wedding.bride}<i>&</i>{wedding.groom}</span></span>
-      <span class="envelope-back"></span>
-      <span class="envelope-pocket"></span>
-      <svg class="envelope-heart" viewBox="0 0 100 90" aria-hidden="true" focusable="false">
-        <path class="heart-stroke" pathLength="1" d="M50 81 C 38 70, 13 55, 10 35 C 8 19, 20 8, 32 9 C 42 10, 48 18, 50 28 C 53 18, 60 9, 71 9 C 84 10, 93 21, 90 37 C 87 55, 63 69, 51 80 C 49 82, 46 83, 44 80" />
-        <path class="heart-stroke heart-stroke-sketch" pathLength="1" d="M49 78 C 36 67, 15 53, 13 34 C 12 21, 22 12, 33 13 C 42 14, 47 21, 49 30 C 52 21, 60 12, 70 13 C 82 14, 90 24, 87 38 C 84 53, 62 67, 52 77" />
-      </svg>
-      <span class="envelope-flap"></span>
-      <span class="wax-seal">{wedding.bride.slice(0, 1)}<i>&</i>{wedding.groom.slice(0, 1)}</span>
+  <div class="ribbon-screen" id="envelope-screen">
+    <div class="ribbon-backdrop" aria-hidden="true"></div>
+    <button class="ribbon-stage" id="open-envelope" aria-label="Open your wedding invitation">
+      <span class="ribbon-door left" aria-hidden="true"><span class="door-face front"></span><span class="door-face back"></span></span>
+      <!-- The ribbon is tied to the right flap, so it swings open with it like a gatefold card. -->
+      <span class="ribbon-door right" aria-hidden="true">
+        <span class="door-face front"></span><span class="door-face back"></span>
+        <span class="ribbon-bow"><img class="bow-art" src="/ribbon/bow.webp" alt="" decoding="async" /></span>
+      </span>
+      <span class="ribbon-hint" aria-hidden="true"><span class="ribbon-hint-dot"></span>Tap to open your invitation</span>
     </button>
-    <div class="envelope-caption"><span class="script-caption">An invitation to our forever</span><p>TOUCH THE ENVELOPE TO OPEN</p></div>
-    <span class="envelope-footer">WITH LOVE, {wedding.bride.toUpperCase()} & {wedding.groom.toUpperCase()}</span>
   </div>
 
   <main id="invitation" tabindex="-1">
     {wedding.sampleDetails && <div class="sample-banner">DESIGN PREVIEW · Date, venue, and event details are samples</div>}
-    <header class="site-header"><a href="#invitation" class="monogram" aria-label="Back to the beginning">{wedding.bride[0]}<i>&</i>{wedding.groom[0]}</a><nav aria-label="Invitation"><a href="#program">The day</a><a href="#attire">Attire</a><a href="#rsvp" class="nav-rsvp">Kindly RSVP <span aria-hidden="true">↗︎</span></a></nav></header>
-    <section class="hero" aria-labelledby="couple-names">
-      <Botanical class="hero-flower left" /><Botanical class="hero-flower right" />
-      <p class="eyebrow">TOGETHER WITH OUR FAMILIES</p>
-      <p class="hero-invitation">You are warmly invited to the wedding of</p>
-      <h1 id="couple-names">{wedding.bride}<span class="ampersand">&</span>{wedding.groom}</h1>
-      <p class="full-names">{wedding.brideFullName} & {wedding.groomFullName}</p>
-      <div class="hero-date"><span class="small-star" aria-hidden="true">✧</span><p>{wedding.date}</p><span class="small-star" aria-hidden="true">✧</span></div>
-      <div class="countdown" id="countdown" data-target={wedding.ceremonyStartsAt} role="timer" aria-label={`Countdown to ${wedding.date}`}>
+    <section class="film-hero" aria-labelledby="film-names">
+      {wedding.teaserVideoUrl && <video class="film-video" id="film-video" src={`${wedding.teaserVideoUrl}#t=${wedding.heroVideoLoop.start}`} data-loop-start={wedding.heroVideoLoop.start} data-loop-end={wedding.heroVideoLoop.end} muted playsinline preload="auto" aria-hidden="true"></video>}
+      <div class="film-shade" aria-hidden="true"></div>
+      <span class="film-monogram hero-reveal" style="--d:.2s" aria-hidden="true"><span>{wedding.heroNames[0].charAt(0)}</span><i>&amp;</i><span>{wedding.heroNames[1].charAt(0)}</span></span>
+      <div class="film-text">
+        <h1 id="film-names" class="film-names hero-reveal" style="--d:.5s">{wedding.heroNames[0]} <i>&amp;</i> {wedding.heroNames[1]}</h1>
+        <p class="film-sub hero-reveal" style="--d:.9s">are getting married</p>
+      </div>
+    </section>
+
+    <section class="hero hero-arch" aria-labelledby="couple-names">
+      <div class="arch arch-copy left hero-reveal" style="--d:.5s" data-land={JSON.stringify([[19, 13], [9, 16.5], [93.4, 16.7], [75, 14.5], [90, 62], [78.5, 60], [14, 60], [7.5, 63], [31, 89.5], [78.5, 69.5]])} aria-hidden="true">
+        <img class="arch-art" src="/hero/arch-left.webp" width="303" height="660" alt="" decoding="async" />
+        <div class="arch-figure-wrap">
+          <svg class="arch-figure groom" viewBox="0 0 120 300" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="fg-barong" x1="0" x2="1"><stop offset="0" stop-color="#f6eddf"/><stop offset=".6" stop-color="#ebdec8"/><stop offset="1" stop-color="#d8c5a7"/></linearGradient>
+              <linearGradient id="fg-pants" x1="0" x2="1"><stop offset="0" stop-color="#5c4235"/><stop offset="1" stop-color="#3d2a21"/></linearGradient>
+              <linearGradient id="fg-skin" x1="0" x2="1"><stop offset="0" stop-color="#f1d5b7"/><stop offset="1" stop-color="#d8ae88"/></linearGradient>
+            </defs>
+            <path d="M41 146 37 281h14l6-112 5 112h14l-2-135z" fill="url(#fg-pants)"/>
+            <path d="M34 279h18l1 7H30c0-4 1-6 4-7zm28 0h16c4 1 7 3 7 7H62z" fill="#1d1512"/>
+            <path d="M53 44h10v14H53z" fill="url(#fg-skin)"/>
+            <path d="M37 59c6-7 34-7 40 0l3 91c-14 6-31 6-44 0z" fill="url(#fg-barong)"/>
+            <path d="M52 64v82M62 64v82" stroke="#fffaf1" stroke-width="2.6" stroke-dasharray="1.6 1.8" opacity=".9"/>
+            <path d="M47 68c3 9 3 22 2 32m18-32c-3 9-3 22-2 32" stroke="#d6c3a5" stroke-width=".8" fill="none"/>
+            <path d="M51 55h12l-1 7-5 4-5-4z" fill="#f3e9d8" stroke="#d6c3a5" stroke-width=".7"/>
+            <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M42 64 44 94 64 50M73 64l13 24-4-38" stroke="#c9b493" stroke-width="11"/>
+              <path d="M42 64 44 94 64 50M73 64l13 24-4-38" stroke="#efe4d2" stroke-width="9"/>
+            </g>
+            <ellipse cx="58" cy="35" rx="11" ry="13.5" fill="url(#fg-skin)"/>
+            <path d="M47 37c-3-15 7-22 17-20 7 1 10 7 9 13-6-5-15-5-21 1l-1 9z" fill="#33241c"/>
+            <rect x="63" y="28" width="25" height="16" rx="3" fill="#2a201b"/>
+            <rect x="69" y="24" width="8" height="5" rx="1" fill="#2a201b"/>
+            <circle cx="89" cy="36" r="6.5" fill="#3b2f29" stroke="#17110e" stroke-width="1.5"/>
+            <circle cx="89" cy="36" r="2.6" fill="#7d6a5d"/>
+            <ellipse cx="65" cy="45" rx="4.6" ry="4" fill="url(#fg-skin)"/><ellipse cx="82" cy="46" rx="4.6" ry="4" fill="url(#fg-skin)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="arch hero-reveal" style="--d:.2s" id="hero-arch" data-land={JSON.stringify([[81, 13], [91, 16.5], [6.6, 16.7], [25, 14.5], [10, 62], [21.5, 60], [86, 60], [92.5, 63], [69, 89.5], [21.5, 69.5]])}>
+        <img class="arch-art" src="/hero/arch.webp" width="303" height="660" alt="" decoding="async" fetchpriority="high" />
+        <div class="arch-text">
+          <h2 id="couple-names" class="arch-names"><span class="hero-name">{wedding.bride}</span><span class="ampersand" id="hero-ampersand">&amp;</span><span class="hero-name">{wedding.groom}</span></h2>
+          <p class="arch-date">{archDate}</p>
+          <span class="arch-rule" aria-hidden="true"><i></i></span>
+          <p class="arch-venue">{wedding.venue}</p>
+        </div>
+        <!-- Phones show only this arch, so the couple stands here on small screens. -->
+        <div class="arch-figure-wrap phone-couple" aria-hidden="true">
+          <svg class="arch-figure bride phone" viewBox="0 0 120 300" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="fbm-gown" x1="0" x2="1"><stop offset="0" stop-color="#fffaf2"/><stop offset=".55" stop-color="#f3e8d6"/><stop offset="1" stop-color="#dfcdb1"/></linearGradient>
+              <linearGradient id="fbm-skin" x1="0" x2="1"><stop offset="0" stop-color="#f2d7ba"/><stop offset="1" stop-color="#d9b08b"/></linearGradient>
+            </defs>
+            <path d="M58 44c14 6 20 40 22 84 2 60 8 108 30 158-14 2-24 1-30-2-6-60-14-120-22-170z" fill="#fffdf8" opacity=".35"/>
+            <path d="M38 106c8 8 22 8 29 2 10 44 26 110 47 176-30 9-66 9-96 0 5-60 12-120 20-178z" fill="url(#fbm-gown)"/>
+            <path d="M48 116c-4 50-10 110-16 168M57 118c2 50 4 110 10 168M64 114c10 50 20 110 32 172" stroke="#d5c1a2" stroke-width="1" fill="none" opacity=".75"/>
+            <path d="M20 280c30 9 62 9 94 3" stroke="#d5c1a2" stroke-width="1" fill="none" opacity=".6"/>
+            <path d="M43 52h8l1 15H42z" fill="url(#fbm-skin)"/>
+            <path d="M31 67c6-6 25-6 31 0v6H32z" fill="url(#fbm-skin)"/>
+            <path d="M60 68c8 5 15 2 18-16" stroke="url(#fbm-skin)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <ellipse cx="78" cy="50" rx="3.2" ry="4.4" fill="url(#fbm-skin)"/>
+            <path d="M33 72c4-4 10-4 14 0 4-4 10-4 15 0l5 36c-8 7-22 7-30 0z" fill="url(#fbm-gown)"/>
+            <path d="M33 72c4-4 10-4 14 0 4-4 10-4 15 0" stroke="#d5c1a2" stroke-width=".8" fill="none"/>
+            <path d="M38 104c8 4 20 4 29 0" stroke="#e8d9c1" stroke-width="2" fill="none"/>
+            <path d="M35 72c-6 12-6 24 0 34 3 5 8 8 12 9" stroke="url(#fbm-skin)" stroke-width="5.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <g transform="translate(46 115)"><path d="M-2 8 -4 26M2 8l3 18" stroke="#8a7357" stroke-width="1.1"/><circle r="6" fill="#f7efe2"/><circle cx="-5" cy="3" r="4.5" fill="#efdcc4"/><circle cx="5" cy="3" r="4.5" fill="#f3e3cf"/><circle cy="-4" r="4" fill="#fffaf2"/></g>
+            <g transform="rotate(-10 46 40)">
+              <ellipse cx="46" cy="40" rx="10" ry="13" fill="url(#fbm-skin)"/>
+              <path d="M35 41c-2-15 9-22 18-19 7 2 9 9 7 16-6-6-15-6-23 3z" fill="#3a271f"/>
+              <circle cx="57" cy="44" r="6.5" fill="#3a271f"/>
+              <path d="M57 39c4 2 6 5 5 9" stroke="#f6efe3" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            </g>
+          </svg>
+          <svg class="arch-figure groom phone" viewBox="0 0 120 300" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="fgm-barong" x1="0" x2="1"><stop offset="0" stop-color="#f6eddf"/><stop offset=".6" stop-color="#ebdec8"/><stop offset="1" stop-color="#d8c5a7"/></linearGradient>
+              <linearGradient id="fgm-pants" x1="0" x2="1"><stop offset="0" stop-color="#5c4235"/><stop offset="1" stop-color="#3d2a21"/></linearGradient>
+              <linearGradient id="fgm-skin" x1="0" x2="1"><stop offset="0" stop-color="#f1d5b7"/><stop offset="1" stop-color="#d8ae88"/></linearGradient>
+            </defs>
+            <path d="M41 146 37 281h14l6-112 5 112h14l-2-135z" fill="url(#fgm-pants)"/>
+            <path d="M34 279h18l1 7H30c0-4 1-6 4-7zm28 0h16c4 1 7 3 7 7H62z" fill="#1d1512"/>
+            <path d="M53 44h10v14H53z" fill="url(#fgm-skin)"/>
+            <path d="M37 59c6-7 34-7 40 0l3 91c-14 6-31 6-44 0z" fill="url(#fgm-barong)"/>
+            <path d="M52 64v82M62 64v82" stroke="#fffaf1" stroke-width="2.6" stroke-dasharray="1.6 1.8" opacity=".9"/>
+            <path d="M47 68c3 9 3 22 2 32m18-32c-3 9-3 22-2 32" stroke="#d6c3a5" stroke-width=".8" fill="none"/>
+            <path d="M51 55h12l-1 7-5 4-5-4z" fill="#f3e9d8" stroke="#d6c3a5" stroke-width=".7"/>
+            <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M42 64 44 94 64 50M73 64l13 24-4-38" stroke="#c9b493" stroke-width="11"/>
+              <path d="M42 64 44 94 64 50M73 64l13 24-4-38" stroke="#efe4d2" stroke-width="9"/>
+            </g>
+            <ellipse cx="58" cy="35" rx="11" ry="13.5" fill="url(#fgm-skin)"/>
+            <path d="M47 37c-3-15 7-22 17-20 7 1 10 7 9 13-6-5-15-5-21 1l-1 9z" fill="#33241c"/>
+            <rect x="63" y="28" width="25" height="16" rx="3" fill="#2a201b"/>
+            <rect x="69" y="24" width="8" height="5" rx="1" fill="#2a201b"/>
+            <circle cx="89" cy="36" r="6.5" fill="#3b2f29" stroke="#17110e" stroke-width="1.5"/>
+            <circle cx="89" cy="36" r="2.6" fill="#7d6a5d"/>
+            <ellipse cx="65" cy="45" rx="4.6" ry="4" fill="url(#fgm-skin)"/><ellipse cx="82" cy="46" rx="4.6" ry="4" fill="url(#fgm-skin)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="arch arch-copy right hero-reveal" style="--d:.5s" data-land={JSON.stringify([[81, 13], [91, 16.5], [6.6, 16.7], [25, 14.5], [10, 62], [21.5, 60], [86, 60], [92.5, 63], [69, 89.5], [21.5, 69.5]])} aria-hidden="true">
+        <img class="arch-art" src="/hero/arch-right.webp" width="303" height="660" alt="" decoding="async" />
+        <div class="arch-figure-wrap">
+          <svg class="arch-figure bride" viewBox="0 0 120 300" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="fb-gown" x1="0" x2="1"><stop offset="0" stop-color="#fffaf2"/><stop offset=".55" stop-color="#f3e8d6"/><stop offset="1" stop-color="#dfcdb1"/></linearGradient>
+              <linearGradient id="fb-skin" x1="0" x2="1"><stop offset="0" stop-color="#f2d7ba"/><stop offset="1" stop-color="#d9b08b"/></linearGradient>
+            </defs>
+            <path d="M58 44c14 6 20 40 22 84 2 60 8 108 30 158-14 2-24 1-30-2-6-60-14-120-22-170z" fill="#fffdf8" opacity=".35"/>
+            <path d="M38 106c8 8 22 8 29 2 10 44 26 110 47 176-30 9-66 9-96 0 5-60 12-120 20-178z" fill="url(#fb-gown)"/>
+            <path d="M48 116c-4 50-10 110-16 168M57 118c2 50 4 110 10 168M64 114c10 50 20 110 32 172" stroke="#d5c1a2" stroke-width="1" fill="none" opacity=".75"/>
+            <path d="M20 280c30 9 62 9 94 3" stroke="#d5c1a2" stroke-width="1" fill="none" opacity=".6"/>
+            <path d="M43 52h8l1 15H42z" fill="url(#fb-skin)"/>
+            <path d="M31 67c6-6 25-6 31 0v6H32z" fill="url(#fb-skin)"/>
+            <path d="M35 68c-8 5-15 2-18-16" stroke="url(#fb-skin)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <ellipse cx="17" cy="50" rx="3.2" ry="4.4" fill="url(#fb-skin)"/>
+            <path d="M33 72c4-4 10-4 14 0 4-4 10-4 15 0l5 36c-8 7-22 7-30 0z" fill="url(#fb-gown)"/>
+            <path d="M33 72c4-4 10-4 14 0 4-4 10-4 15 0" stroke="#d5c1a2" stroke-width=".8" fill="none"/>
+            <path d="M38 104c8 4 20 4 29 0" stroke="#e8d9c1" stroke-width="2" fill="none"/>
+            <path d="M61 72c6 12 6 24 0 34-3 5-8 8-12 9" stroke="url(#fb-skin)" stroke-width="5.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <g transform="translate(46 115)"><path d="M-2 8 -4 26M2 8l3 18" stroke="#8a7357" stroke-width="1.1"/><circle r="6" fill="#f7efe2"/><circle cx="-5" cy="3" r="4.5" fill="#efdcc4"/><circle cx="5" cy="3" r="4.5" fill="#f3e3cf"/><circle cy="-4" r="4" fill="#fffaf2"/></g>
+            <g transform="rotate(-10 46 40)">
+              <ellipse cx="46" cy="40" rx="10" ry="13" fill="url(#fb-skin)"/>
+              <path d="M35 41c-2-15 9-22 18-19 7 2 9 9 7 16-6-6-15-6-23 3z" fill="#3a271f"/>
+              <circle cx="57" cy="44" r="6.5" fill="#3a271f"/>
+              <path d="M57 39c4 2 6 5 5 9" stroke="#f6efe3" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="countdown-section" aria-label="Countdown to the wedding">
+        <p class="countdown-title" id="countdown-title">The day we say <em>&ldquo;I do&rdquo;</em></p>
+        <div class="countdown" id="countdown" data-target={wedding.ceremonyStartsAt} role="timer" aria-label={`Countdown to ${wedding.date}`}>
         <div class="countdown-unit"><strong data-unit="days">—</strong><span>Days</span></div>
         <div class="countdown-unit"><strong data-unit="hours">—</strong><span>Hours</span></div>
         <div class="countdown-unit"><strong data-unit="minutes">—</strong><span>Minutes</span></div>
         <div class="countdown-unit"><strong data-unit="seconds">—</strong><span>Seconds</span></div>
-      </div>
-      <p class="countdown-done" id="countdown-done" hidden>Today, we say <em>I do.</em></p>
-      {wedding.teaserVideoUrl && (
-      <div class="hero-teaser">
-        <div class="teaser-player" id="teaser-player" data-state="idle">
-          <video id="teaser-video" src={`${wedding.teaserVideoUrl}#t=6`} preload="metadata" playsinline></video>
-          <button type="button" class="teaser-start" id="teaser-start" aria-label="Play our teaser video"><span class="teaser-start-icon" aria-hidden="true"></span><span class="teaser-start-label">Watch our teaser</span></button>
-          <div class="teaser-controls" id="teaser-controls">
-            <button type="button" id="teaser-toggle" aria-label="Pause video"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-pause" d="M8 5h3v14H8zM13 5h3v14h-3z"/><path class="icon-play" d="M8 5v14l11-7z"/></svg></button>
-            <button type="button" id="teaser-fullscreen" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="icon-expand" d="M4 9V4h5v2H6v3zm11-5h5v5h-2V6h-3zM4 15h2v3h3v2H4zm14 0h2v5h-5v-2h3z"/><path class="icon-shrink" d="M7 4h2v5H4V7h3zm8 0h2v3h3v2h-5zM4 15h5v5H7v-3H4zm11 0h5v2h-3v3h-2z"/></svg></button>
-            <button type="button" id="teaser-close" aria-label="Close video"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg></button>
-          </div>
         </div>
-      </div>
-      )}
+        <p class="countdown-done" id="countdown-done" hidden>Today, we say <em>I do.</em></p>
     </section>
 
-    <section class="love-note section-pad"><span class="eyebrow">A DAY TO REMEMBER</span><p>Some moments are made<br />more beautiful <em>with you.</em></p><span class="note-copy">As we begin this next chapter, nothing would mean more<br class="desktop-break" /> than having our favourite people by our side.</span><span class="tiny-flower" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></span></section>
+    <section class="welcome section-pad" aria-labelledby="welcome-title">
+      <Orchid id="orchid-welcome-a" class="welcome-orchid top" />
+      <Orchid id="orchid-welcome-b" class="welcome-orchid bottom" />
+      <div class="welcome-inner">
+        <p class="welcome-faith">Rooted in faith &middot; united in love &middot; blessed by God</p>
+        <h2 id="welcome-title" class="welcome-title">Welcome</h2>
+        <p>With grateful hearts and by God&rsquo;s grace, we invite you to celebrate one of the most meaningful days of our lives. Your love, prayers and presence have been part of our journey, and it would mean the world to us to have you with us as we say <strong>&ldquo;I do.&rdquo;</strong></p>
+        <p>Here you&rsquo;ll find everything you need to know about our day: the venue, the program, the dress code and your RSVP. We can&rsquo;t wait to celebrate with you!</p>
+        <p class="welcome-sign">With all our love,</p>
+        <p class="welcome-names">{wedding.heroNames[0]} <i>&amp;</i> {wedding.heroNames[1]}</p>
+      </div>
+    </section>
 
 
     <section id="venue" class="venue section-pad" aria-labelledby="venue-title">
@@ -64,7 +190,7 @@ import { wedding } from '../config/wedding';
       <h2 id="venue-title">{wedding.venue.split(',')[0]}<em>{wedding.venue.includes(',') ? `, ${wedding.venue.split(',').slice(1).join(',').trim()}` : ''}</em></h2>
       <p class="venue-copy">A Spanish-inspired hacienda in the heart of Cebu City,<br class="desktop-break" /> set among gardens, where we will say our vows.</p>
       <div class="venue-art" id="venue-art"><VenueSketch label={`Pencil-style sketch of ${wedding.venue}`} /></div>
-      <button type="button" class="venue-replay" id="venue-replay" hidden><span aria-hidden="true">↻</span> Replay sketch</button>
+      <button type="button" class="venue-replay" id="venue-replay" disabled><span aria-hidden="true">↻</span> Replay sketch</button>
       <p class="venue-address">{wedding.address}</p>
       <div class="venue-links">
         {wedding.venueUrl && <a class="text-link" href={wedding.venueUrl} target="_blank" rel="noopener noreferrer">Visit {wedding.venue.split(',')[0]} <span aria-hidden="true">↗︎</span></a>}
@@ -72,51 +198,53 @@ import { wedding } from '../config/wedding';
       </div>
     </section>
 
-    <section id="program" class="program section-pad" aria-labelledby="program-title">
+    <section id="program" class="program program-garden" aria-labelledby="program-title">
+      <Drape id="drape-program" class="program-drape" />
+      <Lanterns id="lanterns-left" side="left" class="program-lanterns left" />
+      <Lanterns id="lanterns-right" side="right" class="program-lanterns right" />
+      <div class="program-arch">
       <span class="eyebrow">THE PROGRAM</span>
-      <h2 id="program-title">The order <em>of our day.</em></h2>
+      <h2 id="program-title" class="script-title">Order of the Day</h2>
       <p class="program-date">{wedding.date}</p>
       <ol class="program-list">
         {wedding.program.map(item => (
           <li class="program-item">
+            <span class="program-icon-wrap"><ProgramIcon name={item.icon} /></span>
             <span class="program-dot" aria-hidden="true"></span>
             <p class="program-time"><time>{item.time}</time><span>{item.period}</span></p>
             <p class="program-title">{item.title}</p>
           </li>
         ))}
       </ol>
+      <Orchid id="orchid-program" class="program-orchid" />
+      </div>
     </section>
 
-    <section id="attire" class="attire section-pad" aria-labelledby="attire-title"><span class="eyebrow">01 / DRESSED IN LOVE</span><h2 id="attire-title">Soft tones.<br /><em>Beautiful company.</em></h2><p class="attire-code">{wedding.dressCode}</p><p class="attire-note">{wedding.dressNote}</p>
-      <div class="attire-carousel" id="attire-carousel" role="region" aria-roledescription="carousel" aria-label="Attire guide">
-        <div class="attire-tabs" role="tablist" aria-label="Choose an attire guide">
-          {wedding.attireGuides.map((guide, i) => <button type="button" role="tab" class="attire-tab" data-index={i} aria-selected={i === 0 ? 'true' : 'false'} aria-controls={`attire-slide-${i}`}>{guide.title}</button>)}
-        </div>
-        <div class="attire-viewport">
-          <button type="button" class="attire-arrow prev" aria-label="Previous attire guide">←</button>
-          <div class="attire-track" id="attire-track" tabindex="0">
-            {wedding.attireGuides.map((guide, i) => (
-              <figure class={`attire-slide${i === 0 ? ' is-active' : ''}`} id={`attire-slide-${i}`} role="tabpanel" aria-roledescription="slide" aria-label={`${i + 1} of ${wedding.attireGuides.length}: ${guide.title}`}>
-                <figcaption><span class="eyebrow">ATTIRE GUIDE · {i + 1} / {wedding.attireGuides.length}</span><strong>{guide.title}</strong></figcaption>
-                <button type="button" class="attire-zoom" data-index={i} aria-label={`View the ${guide.title} attire guide larger`}>
-                  <img src={guide.image} width={guide.width} height={guide.height} alt={guide.alt} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
-                  <span class="attire-zoom-hint" aria-hidden="true">Tap to enlarge ⤢</span>
-                </button>
-              </figure>
-            ))}
-          </div>
-          <button type="button" class="attire-arrow next" aria-label="Next attire guide">→</button>
-        </div>
-        <div class="attire-dots" aria-hidden="true">{wedding.attireGuides.map((_, i) => <span data-index={i} class={i === 0 ? 'active' : ''}></span>)}</div>
+    <section id="attire" class="attire dress-code section-pad" aria-labelledby="attire-title">
+      <div class="dress-column">
+      <Orchid id="orchid-dress-a" class="dress-orchid top" />
+      <div class="dress-paper"><span class="eyebrow">01 / DRESSED IN LOVE</span><h2 id="attire-title" class="script-title">Dress Code</h2>
+      <ul class="dress-palette" aria-label="Our colour palette">{wedding.guestPalette.map(c => <li style={`--swatch:${c.hex}`}><span aria-hidden="true"></span><small>{c.name}</small></li>)}</ul>
       </div>
-      <dialog class="attire-lightbox" id="attire-lightbox" aria-labelledby="attire-lightbox-title">
-        <div class="attire-lightbox-bar"><p><span class="eyebrow">ATTIRE GUIDE</span><strong id="attire-lightbox-title"></strong></p><button type="button" class="text-link" id="attire-lightbox-close">Close ×</button></div>
-        <div class="attire-lightbox-frame"><img id="attire-lightbox-image" alt="" /></div>
-      </dialog>
+      <div class="dress-card"><Orchid id="orchid-dress-b" class="dress-orchid card" />
+        <p class="dress-intro">{wedding.dressCodeIntro}</p>
+        <div class="dress-rules"><div><h3>For gentlemen</h3><p>{wedding.dressGentlemen}</p></div><div><h3>For ladies</h3><p>{wedding.dressLadies}</p></div></div>
+      </div>
+      <div class="dress-photos">
+        {wedding.guestAttire.map((item, i) => (
+          <figure class={`dress-photo ${i % 2 ? 'tilt-right' : 'tilt-left'}`}>
+            <span class="dress-tape" aria-hidden="true"></span>
+            <img src={item.image} width={item.width} height={item.height} alt={item.alt} loading="lazy" decoding="async" />
+            <figcaption>{item.label}</figcaption>
+          </figure>
+        ))}
+        <Orchid id="orchid-dress-c" class="dress-orchid photos" />
+      </div>
+      </div>
     </section>
 
     <section id="rsvp" class="rsvp section-pad" aria-labelledby="rsvp-title">
-      <div class="rsvp-intro"><span class="eyebrow">02 / SAVE YOUR SEAT</span><h2 id="rsvp-title">Will you<br /><em>join us?</em></h2><p>Your presence would mean the world.<br />Please let us know if you can celebrate with us.</p><p class="deadline">KINDLY RESPOND ON OR BEFORE<br /><span>{wedding.rsvpDeadline}</span></p><Botanical class="rsvp-flower" /></div>
+      <div class="rsvp-intro"><span class="eyebrow">02 / SAVE YOUR SEAT</span><h2 id="rsvp-title">Will you<br /><em>join us?</em></h2><p>Your presence would mean the world.<br />Please let us know if you can celebrate with us.</p><p class="deadline">KINDLY RESPOND ON OR BEFORE<br /><span>{wedding.rsvpDeadline}</span></p><Orchid id="orchid-rsvp" class="rsvp-orchid" /></div>
       <div class="rsvp-panel">
         <div id="invitation-lookup"><h3>A place just for you</h3><p>Open the personal link {wedding.bride} &amp; {wedding.groom} sent you, or enter your 6-character invitation code below.</p><form id="lookup-form"><label for="invite-code">Invitation code</label><input id="invite-code" name="token" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. K7MP3Q" /><button class="button" type="submit">Find my invitation <span aria-hidden="true">→</span></button></form></div>
         <form id="rsvp-form" hidden>
@@ -138,7 +266,7 @@ import { wedding } from '../config/wedding';
   <noscript><style>.envelope-screen{display:none}</style><div class="noscript-note">Please enable JavaScript to send your RSVP. You can still read the invitation below.</div></noscript>
   <script src="../scripts/invitation.ts"></script>
   <script src="../scripts/countdown.ts"></script>
-  <script src="../scripts/teaser.ts"></script>
+  <script src="../scripts/film.ts"></script>
   <script src="../scripts/venue-sketch.ts"></script>
-  <script src="../scripts/attire.ts"></script>
+  <script src="../scripts/butterflies.ts"></script>
 </Layout>

@@ -17,7 +17,7 @@ if (root && done && Number.isFinite(target)) {
     const left = target - Date.now();
     if (left <= 0) {
       // The day has arrived: swap the numbers for a short message.
-      root.hidden = true; done.hidden = false; window.clearInterval(timer); return;
+      root.hidden = true; done.hidden = false; document.querySelector<HTMLElement>('#countdown-title')?.setAttribute('hidden', ''); window.clearInterval(timer); return;
     }
     const s = Math.floor(left / 1000);
     units.days.textContent = String(Math.floor(s / 86400));
