@@ -455,3 +455,12 @@ body{background:var(--paper)}
   .rsvp-stack .rsvp-orchid{width:130px;left:-36px;bottom:-34px;right:auto}
 }
 @media(prefers-reduced-motion:reduce){.photo-track{transition:none}}
+
+/* ---------- Live satin ribbon (ribbon-bow.ts): unties before the card opens ---------- */
+.ribbon-canvas{position:absolute;inset:0;z-index:3;pointer-events:none;filter:drop-shadow(0 6px 9px #2e1f1761)}
+.ribbon-stage.has-ribbon-canvas .ribbon-bow{display:none}
+.is-untying .ribbon-hint{opacity:0}
+/* With the ribbon gone, the flaps open straight away. */
+.has-ribbon-canvas .ribbon-door.right{transition-delay:.05s}
+.has-ribbon-canvas .ribbon-door.left{transition-delay:.35s}
+.has-ribbon-canvas .door-face.front{transition-delay:.05s}

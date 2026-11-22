@@ -1,4 +1,4 @@
-export {};
+import { createRibbonBow } from './ribbon-bow';
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const envelope = $('#envelope-screen');
 const main = $('#invitation');
@@ -15,9 +15,14 @@ function updateMusic() {
   $('#music-label').textContent = audio.paused ? 'Play music' : 'Pause music';
 }
 async function playMusic() { if (audio) { try { await audio.play(); } catch { /* The visible play control remains available. */ } updateMusic(); } }
-openButton.addEventListener('click', () => {
+// The bow is drawn live so it can untie; if that isn't possible the bow image stays instead.
+const bow = createRibbonBow(openButton);
+openButton.addEventListener('click', async () => {
   openButton.disabled = true;
   void playMusic(); // Call during the gesture; don't wait for the animation.
+  // First the ribbon unties and falls away, then the card opens.
+  envelope.classList.add('is-untying');
+  if (bow) await bow.untie();
   envelope.classList.add('is-opening');
   window.setTimeout(() => {
     envelope.classList.add('is-open');
@@ -27,8 +32,8 @@ openButton.addEventListener('click', () => {
     // Lets the hero fade in its greeting and start the butterflies.
     document.body.classList.add('invitation-open');
     window.dispatchEvent(new Event('invitation-open'));
-    window.setTimeout(() => { envelope.hidden = true; }, reducedMotion ? 0 : 700);
-  }, reducedMotion ? 0 : 2100); // bow tug (0–0.45s), right flap opens (0.3–1.8s), left flap (0.7–2.2s), then a 0.6s fade
+    window.setTimeout(() => { envelope.hidden = true; bow?.destroy(); }, reducedMotion ? 0 : 700);
+  }, reducedMotion ? 0 : 1900); // after the untie: right flap opens (0.05–1.55s), left flap (0.35–1.85s), then a 0.6s fade
 }, { once: true });
 music?.addEventListener('click', () => { if (!audio) return; if (audio.paused) void playMusic(); else { audio.pause(); updateMusic(); } });
 audio?.addEventListener('pause', updateMusic);
