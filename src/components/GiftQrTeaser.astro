@@ -1,0 +1,27 @@
+---
+// A decorative (not scannable) QR-style pattern for the closed gift card, so the real codes
+// only appear once a guest taps to reveal them.
+const N = 25;
+let seed = 7;
+const rand = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+const finder = (x: number, y: number) => {
+  for (const [fx, fy] of [[0, 0], [N - 7, 0], [0, N - 7]]) if (x >= fx && x < fx + 7 && y >= fy && y < fy + 7) return true;
+  return false;
+};
+const cells: [number, number][] = [];
+for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!finder(x, y) && rand() > 0.52) cells.push([x, y]);
+---
+<svg class="gift-qr-teaser" viewBox="-3 -3 31 31" aria-hidden="true" focusable="false">
+  <g fill="currentColor">
+    {[[0, 0], [N - 7, 0], [0, N - 7]].map(([x, y]) => (
+      <>
+        <path d={`M${x} ${y}h7v7h-7z M${x + 1} ${y + 1}v5h5v-5z`} fill-rule="evenodd" />
+        <rect x={x + 2} y={y + 2} width="3" height="3" />
+      </>
+    ))}
+    {cells.map(([x, y]) => <rect x={x} y={y} width="1" height="1" rx=".15" />)}
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width=".7" stroke-linecap="round">
+    <path d="M-2.5 2.5v-5h5M22.5 -2.5h5v5M27.5 22.5v5h-5M2.5 27.5h-5v-5" />
+  </g>
+</svg>

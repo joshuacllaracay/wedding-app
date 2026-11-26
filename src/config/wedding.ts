@@ -17,6 +17,16 @@ export const wedding = {
   heroVideoLoop: { start: 10, end: 33 },
   // Names on the opening video, e.g. "Emman & Chyka are getting married".
   heroNames: ['Emman', 'Chyka'],
+  // Cinematic film strip (below the arches): prenup photos, colour-graded, in /public/story.
+  storyPhotoCount: 11,
+  storyDate: '02.06.2027',
+  // Gift section ("A Foundation for Forever"): QR codes shown when a guest taps the gift card.
+  giftAccounts: [
+    { label: 'GCash', image: '/gifts/gcash-code.png', file: 'Chyka-Emmanuel-GCash-QR.png' },
+    { label: 'GoTyme Bank', image: '/gifts/gotyme-code.png', file: 'Chyka-Emmanuel-GoTyme-QR.png' },
+  ],
+  // Name shown under each gift QR code.
+  giftRecipient: 'Chyka Joanne Claracay',
   // Photos that slide through the two circles in the RSVP section (in /public).
   couplePhotos: ['/couple/photo-1.webp', '/couple/photo-2.webp', '/couple/photo-3.webp', '/couple/photo-4.webp'],
   // Order of the day, shown in "The Program" section. icon: assemble | ceremony | cocktail | reception

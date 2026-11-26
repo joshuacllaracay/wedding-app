@@ -5,6 +5,7 @@ import ProgramIcon from '../components/ProgramIcon.astro';
 import Orchid from '../components/Orchid.astro';
 import Lanterns from '../components/Lanterns.astro';
 import Drape from '../components/Drape.astro';
+import GiftQrTeaser from '../components/GiftQrTeaser.astro';
 import { wedding } from '../config/wedding';
 const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' });
 ---
@@ -160,7 +161,29 @@ const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', 
       </div>
     </section>
 
-    <section class="countdown-section" aria-label="Countdown to the wedding">
+    <section class="film-section" aria-labelledby="film-title">
+      <svg class="film-reel" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+        <defs><radialGradient id="reel-metal" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#f0d2a8"/><stop offset=".5" stop-color="#b8875c"/><stop offset="1" stop-color="#6b4a33"/></radialGradient></defs>
+        <circle cx="100" cy="100" r="96" fill="url(#reel-metal)"/>
+        <circle cx="100" cy="100" r="88" fill="none" stroke="#5a3d2b" stroke-width="2" opacity=".5"/>
+        <g fill="#3a271d"><circle cx="100" cy="44" r="23"/><circle cx="100" cy="156" r="23"/><circle cx="44" cy="100" r="23"/><circle cx="156" cy="100" r="23"/><circle cx="60" cy="60" r="15"/><circle cx="140" cy="140" r="15"/><circle cx="140" cy="60" r="15"/><circle cx="60" cy="140" r="15"/></g>
+        <circle cx="100" cy="100" r="16" fill="#e6c496" stroke="#5a3d2b" stroke-width="3"/><circle cx="100" cy="100" r="5" fill="#3a271d"/>
+      </svg>
+      <p class="film-invite">You are cordially invited<br />to the wedding of</p>
+      <h2 id="film-title" class="film-couple">{wedding.bride} <i>&amp;</i> {wedding.heroNames[0]}</h2>
+      <p class="film-date"><i></i>{wedding.storyDate}<i></i></p>
+      <!-- The strip rolls on its own; drag to move it, tap a frame to open it (film-strip.ts). -->
+      <div class="film-strip" id="film-strip" data-photos={JSON.stringify(Array.from({ length: wedding.storyPhotoCount }, (_, i) => `/story/photo-${i + 1}.jpg`))}>
+        <div class="film-track">
+          {[0, 1].map(copy => Array.from({ length: wedding.storyPhotoCount }, (_, i) => (
+            <button type="button" class="film-frame" data-index={i} aria-label={`Open photo ${i + 1} of ${wedding.storyPhotoCount}`} tabindex={copy ? -1 : 0} aria-hidden={copy ? 'true' : undefined}>
+              <img src={`/story/thumb-${i + 1}.jpg`} width="520" height="347" alt="" loading="lazy" decoding="async" draggable="false" />
+            </button>
+          )))}
+        </div>
+      </div>
+      <p class="film-hint">Swipe the film, or tap a frame to see it big</p>
+      <div class="film-countdown">
         <p class="countdown-title" id="countdown-title">The day we say <em>&ldquo;I do&rdquo;</em></p>
         <div class="countdown" id="countdown" data-target={wedding.ceremonyStartsAt} role="timer" aria-label={`Countdown to ${wedding.date}`}>
         <div class="countdown-unit"><strong data-unit="days">—</strong><span>Days</span></div>
@@ -169,6 +192,14 @@ const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', 
         <div class="countdown-unit"><strong data-unit="seconds">—</strong><span>Seconds</span></div>
         </div>
         <p class="countdown-done" id="countdown-done" hidden>Today, we say <em>I do.</em></p>
+      </div>
+      <dialog id="film-viewer" class="film-viewer" aria-label="Photo viewer">
+        <div class="film-viewer-frame"><img class="film-viewer-img" src="" alt="Prenup photo of Chyka and Emmanuel" /></div>
+        <button type="button" class="film-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <button type="button" class="film-prev" aria-label="Previous photo"><span aria-hidden="true">&lsaquo;</span></button>
+        <button type="button" class="film-next" aria-label="Next photo"><span aria-hidden="true">&rsaquo;</span></button>
+        <p class="film-viewer-count" aria-live="polite"></p>
+      </dialog>
     </section>
 
     <section class="welcome section-pad" aria-labelledby="welcome-title">
@@ -243,6 +274,75 @@ const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', 
       </div>
     </section>
 
+    <section id="gifts" class="gifts section-pad" aria-labelledby="gifts-title">
+      <svg class="satin-drape tl" viewBox="0 0 400 400" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="gift-satin-tl-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4e3628"/><stop offset=".35" stop-color="#9c7154"/><stop offset=".5" stop-color="#d9b48c"/><stop offset=".65" stop-color="#8a5e3f"/><stop offset="1" stop-color="#3d2a1f"/></linearGradient>
+          <linearGradient id="gift-satin-tl-b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#5a3d2b"/><stop offset=".45" stop-color="#b58a63"/><stop offset=".6" stop-color="#e6c9a3"/><stop offset="1" stop-color="#6b4a33"/></linearGradient>
+        </defs>
+        <path d="M0 0h400C330 40 300 70 250 120 190 180 120 210 0 230z" fill="url(#gift-satin-tl-a)"/>
+        <path d="M0 0h260C210 60 170 110 110 150 70 175 35 190 0 196z" fill="url(#gift-satin-tl-b)" opacity=".85"/>
+        <path d="M0 120C60 110 120 80 170 40 190 25 205 12 215 0" fill="none" stroke="#f3dfc2" stroke-width="2" opacity=".45"/>
+        <path d="M0 200C90 180 170 140 240 80" fill="none" stroke="#2e1f17" stroke-width="3" opacity=".25"/>
+      </svg>
+      <svg class="satin-drape br" viewBox="0 0 400 400" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="gift-satin-br-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4e3628"/><stop offset=".35" stop-color="#9c7154"/><stop offset=".5" stop-color="#d9b48c"/><stop offset=".65" stop-color="#8a5e3f"/><stop offset="1" stop-color="#3d2a1f"/></linearGradient>
+          <linearGradient id="gift-satin-br-b" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#5a3d2b"/><stop offset=".45" stop-color="#b58a63"/><stop offset=".6" stop-color="#e6c9a3"/><stop offset="1" stop-color="#6b4a33"/></linearGradient>
+        </defs>
+        <path d="M0 0h400C330 40 300 70 250 120 190 180 120 210 0 230z" fill="url(#gift-satin-br-a)"/>
+        <path d="M0 0h260C210 60 170 110 110 150 70 175 35 190 0 196z" fill="url(#gift-satin-br-b)" opacity=".85"/>
+        <path d="M0 120C60 110 120 80 170 40 190 25 205 12 215 0" fill="none" stroke="#f3dfc2" stroke-width="2" opacity=".45"/>
+        <path d="M0 200C90 180 170 140 240 80" fill="none" stroke="#2e1f17" stroke-width="3" opacity=".25"/>
+      </svg>
+      <div class="gift-card">
+        <!-- White lilies (Pixabay Content License), centres toned to champagne. -->
+        <img class="gift-lilies top" src="/decor/lilies-garland.webp" width="1000" height="441" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img class="gift-lilies bottom" src="/decor/lilies-cluster.webp" width="560" height="588" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <p class="gift-mono" aria-hidden="true"><i></i><span>{wedding.bride.charAt(0)}<b>&amp;</b>{wedding.groom.charAt(0)}</span><i></i></p>
+        <h2 id="gifts-title" class="gift-title"><span>A Foundation for</span> <span class="gift-title-big">Forever</span></h2>
+        <span class="gift-swash" aria-hidden="true"></span>
+        <p class="gift-copy">As two hearts become one, we look forward to creating a lifetime of memories and dreams.</p>
+        <span class="gift-sprig" aria-hidden="true"><i></i><svg viewBox="0 0 60 24" aria-hidden="true" focusable="false"><path d="M8 20C20 16 32 10 52 4" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M20 15c-2-5 1-9 6-10-1 5-3 8-6 10zM30 11c-1-5 3-8 8-8-2 5-4 7-8 8zM40 7c0-4 3-6 7-6-2 4-4 5-7 6zM24 15c4 1 7 4 8 8-4-1-7-4-8-8zM34 10c4 0 7 3 8 6-4 0-7-2-8-6z" fill="currentColor"/></svg><i></i></span>
+        <p class="gift-copy">If you wish to share a gift, a contribution toward the life we&rsquo;re building together would be a beautiful blessing.</p>
+        <!-- Tap to reveal the real QR codes (gifts.ts). -->
+        <button type="button" class="gift-reveal" id="gift-reveal" aria-haspopup="dialog" aria-controls="gift-dialog">
+          <GiftQrTeaser />
+          <span class="gift-reveal-rule" aria-hidden="true"></span>
+          <span class="gift-reveal-cta">
+            <span class="gift-reveal-top"><svg class="gift-phone" viewBox="0 0 48 56" aria-hidden="true" focusable="false"><rect x="4" y="2" width="26" height="46" rx="5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 7h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M26 44V28c0-2 3-2 3 0v9-12c0-2 3-2 3 0v12-10c0-2 3-2 3 0v10-7c0-2 3-2 3 0v13c0 6-4 10-9 10h-2c-3 0-5-1-7-4l-5-7c-1-2 1-4 3-3z" fill="#fbf6ee" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M33 20l3-4M38 23l4-2M29 18l-1-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="gift-reveal-text">Tap to send<br />a gift</span></span>
+            <span class="gift-reveal-button"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11.5 21 3l-6.5 18-3-7.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11.5 13.5 21 3" stroke="currentColor" stroke-width="1.8"/></svg>Transfer here</span>
+          </span>
+        </button>
+        <span class="gift-hearts" aria-hidden="true"><svg viewBox="0 0 80 30" focusable="false"><path d="M4 22c10 0 18-4 24-8M76 22c-10 0-18-4-24-8" fill="none" stroke="currentColor" stroke-width="1"/><path d="M34 20c-6-5-8-9-5-12 2-2 5-1 6 1 1-2 4-3 6-1 3 3 1 7-7 12z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M44 22c-6-5-8-9-5-12 2-2 5-1 6 1 1-2 4-3 6-1 3 3 1 7-7 12z" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".7"/></svg></span>
+      </div>
+
+      <dialog id="gift-dialog" class="gift-dialog" aria-labelledby="gift-dialog-title">
+        <div class="gift-dialog-panel">
+          <button type="button" class="gift-close" id="gift-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <p class="gift-mono small" aria-hidden="true"><i></i><span>{wedding.bride.charAt(0)}<b>&amp;</b>{wedding.groom.charAt(0)}</span><i></i></p>
+          <h3 id="gift-dialog-title">Send a gift</h3>
+          <p class="gift-dialog-lead">Scan with your banking app, or save the QR image and upload it there.</p>
+          <div class="gift-tabs" role="tablist" aria-label="Choose how to send">
+            {wedding.giftAccounts.map((a, i) => <button type="button" role="tab" id={`gift-tab-${i}`} aria-controls={`gift-pane-${i}`} aria-selected={i === 0 ? 'true' : 'false'}>{a.label}</button>)}
+          </div>
+          <!-- Every bank shows the same layout (bank, QR, name), so switching tabs doesn't shift anything. -->
+          <div class="gift-panes">
+            {wedding.giftAccounts.map((a, i) => (
+              <div class="gift-pane" role="tabpanel" id={`gift-pane-${i}`} aria-labelledby={`gift-tab-${i}`} hidden={i !== 0}>
+                <div class="gift-qr-card">
+                  <p class="gift-bank">{a.label}</p>
+                  <img src={a.image} width="600" height="600" alt={`${a.label} QR code for sending a gift to ${wedding.giftRecipient}`} loading="lazy" decoding="async" />
+                  <p class="gift-recipient">{wedding.giftRecipient}</p>
+                </div>
+                <a class="gift-save" href={a.image} download={a.file}>Save QR image <span aria-hidden="true">&darr;</span></a>
+              </div>
+            ))}
+          </div>
+          <p class="gift-note">Transfer fees may apply. Thank you for your love and generosity.</p>
+        </div>
+      </dialog>
+    </section>
     <section id="rsvp" class="rsvp rsvp-stack section-pad" aria-labelledby="rsvp-title">
       <div class="rsvp-intro">
         <div class="rsvp-top">
@@ -285,4 +385,6 @@ const archDate = new Date(wedding.ceremonyStartsAt).toLocaleDateString('en-US', 
   <script src="../scripts/venue-sketch.ts"></script>
   <script src="../scripts/butterflies.ts"></script>
   <script src="../scripts/rsvp-photos.ts"></script>
+  <script src="../scripts/gifts.ts"></script>
+  <script src="../scripts/film-strip.ts"></script>
 </Layout>
